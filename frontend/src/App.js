@@ -1,10 +1,9 @@
-
-export default App;
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import Login from './pages/login';
+import Register from './pages/register';
+import UserDashboard from './pages/UserDashboard';
 
 function App() {
   return (
@@ -13,6 +12,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/user/dashboard" element={<UserDashboard />} />
       </Routes>
     </Router>
   );

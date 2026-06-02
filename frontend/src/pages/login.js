@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUserMd, FaLock, FaHeartbeat, FaEye, FaEyeSlash, FaArrowRight } from 'react-icons/fa';
 import { MdLocalHospital } from 'react-icons/md';
+import { loginUser } from '../services/api';
 
 const Login = () => {
   const [lang, setLang] = useState('EN');
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = e => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,14 +19,38 @@ const Login = () => {
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => setLoading(false), 2000);
-  };
+    setError('');
+
+    try {
+        const response = await loginUser(formData);
+        const { access, refresh, user } = response.data;
+
+        localStorage.setItem('access_token', access);
+        localStorage.setItem('refresh_token', refresh);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        if (user.role === 'doctor') {
+            window.location.href = '/doctor/dashboard';
+        } else if (user.role === 'admin') {
+            window.location.href = '/admin/dashboard';
+        } else {
+            window.location.href = '/user/dashboard';
+        }
+    } catch (err) {
+        setError(
+            err.response?.data?.error ||
+            (lang === 'EN' ? 'Invalid username or password.' : 'Nom d\'utilisateur ou mot de passe incorrect.')
+        );
+    } finally {
+        setLoading(false);
+    }
+};
 
   const healthWords = [
-    'Emergency Guidance', 'Verified Doctors', 'Drug Information',
-    'AI Health Assistant', 'Health Education', 'Secure & Private',
-    'Daily Health Tips', 'Bilingual Support', 'Offline Access',
-    'First Aid Steps', 'Doctor Consultation', 'Health Reminders'
+    'Emergency Guidance', 'Verified Doctors', 'and more......',
+    // 'AI Health Assistant', 'Health Education', 'Secure & Private',
+    // 'Daily Health Tips', 'Bilingual Support', 'Offline Access',
+    // 'First Aid Steps', 'Doctor Consultation', 'Health Reminders'
   ];
 
   return (
@@ -45,6 +71,8 @@ const Login = () => {
           backgroundImage: "url('/images/landing.jpg')",
           backgroundSize: 'cover', backgroundPosition: 'center',
           opacity: 0.15
+        
+            
         }} />
 
         {/* Decorative circles */}
@@ -187,6 +215,17 @@ const Login = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit}>
+            {error && (
+    <div style={{
+        background: '#fff5f5', border: '1px solid #feb2b2',
+        borderRadius: '10px', padding: '0.75rem 1rem',
+        marginBottom: '1rem', color: '#c53030',
+        fontSize: '0.85rem', display: 'flex',
+        alignItems: 'center', gap: '8px'
+    }}>
+        ⚠️ {error}
+    </div>
+)}
 
             {/* Username */}
             <div style={{ marginBottom: '1.2rem' }}>
@@ -312,7 +351,7 @@ const Login = () => {
             fontWeight: 600, textDecoration: 'none',
             transition: '0.2s', boxSizing: 'border-box'
           }}>
-            {lang === 'EN' ? 'Create Free Account' : 'Créer un compte gratuit'}
+            {lang === 'EN' ? 'Create an Account' : 'Créer un compte '}
           </Link>
 
           {/* Back to home */}
@@ -323,7 +362,7 @@ const Login = () => {
           </div>
 
           {/* Health disclaimer */}
-          <div style={{
+          {/* <div style={{
             marginTop: '2rem', padding: '0.8rem 1rem',
             background: '#f0fdf4', borderRadius: '10px',
             border: '1px solid #bbf7d0',
@@ -335,7 +374,7 @@ const Login = () => {
                 ? 'Your health data is protected with JWT encryption and never shared with third parties.'
                 : 'Vos données de santé sont protégées par chiffrement JWT et jamais partagées avec des tiers.'}
             </p>
-          </div>
+          </div> */}
         </motion.div>
       </div>
     </div>
