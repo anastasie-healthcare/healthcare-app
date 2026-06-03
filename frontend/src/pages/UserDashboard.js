@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    FaHeartbeat, FaAmbulance, FaUserMd,
-    FaRobot, FaUser, FaBell, FaSignOutAlt,
-    FaChevronRight, FaSearch, FaFileMedical,
-    FaNotesMedical, FaStethoscope, FaCapsules
+    FaAmbulance, FaUserMd, FaRobot, FaUser,
+    FaBell, FaSignOutAlt, FaChevronRight,
+    FaSearch, FaNotesMedical, FaStethoscope,
+    FaCapsules, FaShieldAlt
 } from 'react-icons/fa';
 import {
     MdDashboard, MdLocalHospital,
-    MdHealthAndSafety, MdMedication,
-    MdOutlineEmergency, MdPsychology
+    MdHealthAndSafety, MdPsychology,
+    MdOutlineTipsAndUpdates
 } from 'react-icons/md';
-import { RiMentalHealthLine, RiHospitalLine } from 'react-icons/ri';
-import { GiMedicalPack } from 'react-icons/gi';
+import { RiMentalHealthFill } from 'react-icons/ri';
 
 const UserDashboard = () => {
     const [user, setUser] = useState(null);
@@ -97,10 +96,31 @@ const UserDashboard = () => {
         { icon: <MdPsychology size={16} />, color: '#8b5cf6', bg: '#f5f3ff', text: lang === 'EN' ? 'Asked AI about malaria prevention tips' : "Demandé à l'IA des conseils sur la prévention du paludisme", time: lang === 'EN' ? '2 days ago' : 'Il y a 2 jours' },
     ];
 
+    const notifications = [
+        {
+            icon: <FaAmbulance size={18} />,
+            color: '#ef4444', bg: '#fef2f2', border: '#fecaca',
+            title: lang === 'EN' ? 'Emergency Reminder' : 'Rappel Urgence',
+            desc: lang === 'EN' ? 'Save emergency contacts and first aid steps for offline access.' : "Sauvegardez les contacts d'urgence et les étapes de premiers secours hors ligne."
+        },
+        {
+            icon: <FaCapsules size={18} />,
+            color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0',
+            title: lang === 'EN' ? 'Medication Reminder' : 'Rappel Médicament',
+            desc: lang === 'EN' ? 'Never take medications without checking dosage and precautions first.' : 'Ne prenez jamais de médicaments sans vérifier le dosage et les précautions.'
+        },
+        {
+            icon: <MdHealthAndSafety size={20} />,
+            color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe',
+            title: lang === 'EN' ? 'AI Health Tip' : 'Conseil IA Santé',
+            desc: lang === 'EN' ? 'Ask our AI assistant about malaria prevention during the rainy season in Cameroon.' : "Demandez à notre assistant IA des conseils sur la prévention du paludisme."
+        },
+    ];
+
     return (
         <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'Inter', sans-serif", background: '#f8fafc' }}>
 
-            {/* ===== SIDEBAR — clean white professional ===== */}
+            {/* ===== SIDEBAR ===== */}
             <div style={{
                 width: '260px', flexShrink: 0,
                 background: 'white',
@@ -164,8 +184,7 @@ const UserDashboard = () => {
                         </div>
                         <div style={{
                             display: 'inline-flex', alignItems: 'center', gap: '4px',
-                            background: '#f0fdf4',
-                            border: '1px solid #bbf7d0',
+                            background: '#f0fdf4', border: '1px solid #bbf7d0',
                             borderRadius: '20px', padding: '1px 8px',
                             fontSize: '0.6rem', color: '#10b981', fontWeight: 700
                         }}>
@@ -175,16 +194,8 @@ const UserDashboard = () => {
                     </div>
                 </div>
 
-                {/* Menu */}
+                {/* Menu — no "Main Menu" label */}
                 <nav style={{ flex: 1, padding: '1rem 0.75rem', overflowY: 'auto' }}>
-                    <p style={{
-                        fontSize: '0.62rem', color: '#94a3b8',
-                        fontWeight: 700, letterSpacing: '0.1em',
-                        textTransform: 'uppercase', padding: '0 0.75rem',
-                        marginBottom: '0.5rem', marginTop: 0
-                    }}>
-                        {lang === 'EN' ? 'Main Menu' : 'Menu Principal'}
-                    </p>
                     {menuItems.map((item) => (
                         <div
                             key={item.id}
@@ -214,19 +225,16 @@ const UserDashboard = () => {
 
                 {/* Logout */}
                 <div style={{ padding: '1rem 0.75rem', borderTop: '1px solid #f1f5f9' }}>
-                    <button
-                        onClick={handleLogout}
-                        style={{
-                            width: '100%', padding: '0.75rem',
-                            background: '#fef2f2',
-                            border: '1px solid #fecaca',
-                            borderRadius: '10px', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', gap: '8px',
-                            color: '#ef4444', fontWeight: 600,
-                            fontSize: '0.87rem', transition: 'all 0.2s',
-                            fontFamily: "'Inter', sans-serif"
-                        }}>
+                    <button onClick={handleLogout} style={{
+                        width: '100%', padding: '0.75rem',
+                        background: '#fef2f2', border: '1px solid #fecaca',
+                        borderRadius: '10px', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', gap: '8px',
+                        color: '#ef4444', fontWeight: 600,
+                        fontSize: '0.87rem', transition: 'all 0.2s',
+                        fontFamily: "'Inter', sans-serif"
+                    }}>
                         <FaSignOutAlt size={14} />
                         {lang === 'EN' ? 'Logout' : 'Déconnexion'}
                     </button>
@@ -238,21 +246,34 @@ const UserDashboard = () => {
 
                 {/* Top header */}
                 <div style={{
-                    background: 'white',
-                    padding: '1rem 2rem',
+                    background: 'white', padding: '1rem 2rem',
                     borderBottom: '1px solid #e2e8f0',
                     display: 'flex', alignItems: 'center',
                     justifyContent: 'space-between',
                     position: 'sticky', top: 0, zIndex: 50,
                     boxShadow: '0 1px 6px rgba(0,0,0,0.05)'
                 }}>
-                    <div>
-                        <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                            {lang === 'EN' ? `Good day, ${user?.username || 'User'} 👋` : `Bonjour, ${user?.username || 'User'} 👋`}
-                        </h1>
-                        <p style={{ color: '#64748b', fontSize: '0.86rem', margin: '0.15rem 0 0' }}>
-                            {lang === 'EN' ? 'Welcome to your personal health dashboard' : 'Bienvenue sur votre tableau de bord santé personnel'}
-                        </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {/* Professional greeting icon */}
+                        <div style={{
+                            width: '42px', height: '42px',
+                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                            borderRadius: '12px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 3px 10px rgba(99,102,241,0.3)'
+                        }}>
+                            <MdHealthAndSafety size={22} color="white" />
+                        </div>
+                        <div>
+                            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                                {lang === 'EN'
+                                    ? `Good day, ${user?.username || 'User'}`
+                                    : `Bonjour, ${user?.username || 'User'}`}
+                            </h1>
+                            <p style={{ color: '#64748b', fontSize: '0.86rem', margin: '0.1rem 0 0' }}>
+                                {lang === 'EN' ? 'Welcome to your personal health dashboard' : 'Bienvenue sur votre tableau de bord santé personnel'}
+                            </p>
+                        </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div style={{ position: 'relative' }}>
@@ -313,9 +334,17 @@ const UserDashboard = () => {
                         <div style={{ position: 'absolute', bottom: '-25px', right: '160px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(16,185,129,0.12)', pointerEvents: 'none' }} />
                         <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.2rem' }}>
                             <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '0.5rem' }}>
-                                    <FaHeartbeat color="#f87171" size={15} />
-                                    <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.8rem', fontWeight: 500 }}>
+                                {/* Professional icon instead of emoji */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
+                                    <div style={{
+                                        width: '24px', height: '24px',
+                                        background: 'rgba(255,255,255,0.12)',
+                                        borderRadius: '6px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}>
+                                        <MdLocalHospital color="#a5b4fc" size={16} />
+                                    </div>
+                                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 500 }}>
                                         {lang === 'EN' ? 'AnasHealthcare Patient Portal' : 'Portail Patient AnasHealthcare'}
                                     </span>
                                 </div>
@@ -366,8 +395,7 @@ const UserDashboard = () => {
                     }}>
                         {quickStats.map((stat, i) => (
                             <div key={i} style={{
-                                background: stat.bg,
-                                borderRadius: '14px', padding: '1.3rem',
+                                background: stat.bg, borderRadius: '14px', padding: '1.3rem',
                                 boxShadow: `0 5px 18px ${stat.shadow}`,
                                 cursor: 'pointer', position: 'relative', overflow: 'hidden'
                             }}>
@@ -430,22 +458,29 @@ const UserDashboard = () => {
                         {/* Right column */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
 
-                            {/* Health tip */}
+                            {/* Health tip — professional icon */}
                             <div style={{
                                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                                 borderRadius: '16px', padding: '1.3rem',
                                 boxShadow: '0 5px 18px rgba(99,102,241,0.3)'
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '0.65rem' }}>
-                                    <FaHeartbeat color="rgba(255,255,255,0.75)" size={14} />
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.65rem' }}>
+                                    <div style={{
+                                        width: '26px', height: '26px',
+                                        background: 'rgba(255,255,255,0.15)',
+                                        borderRadius: '7px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}>
+                                        <MdOutlineTipsAndUpdates color="white" size={16} />
+                                    </div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                                         {lang === 'EN' ? "Today's Health Tip" : "Conseil du Jour"}
                                     </span>
                                 </div>
                                 <p style={{ margin: 0, fontSize: '0.88rem', color: 'white', lineHeight: 1.7, fontWeight: 500 }}>
                                     {lang === 'EN'
-                                        ? "💧 Drink at least 1.5L of water daily — especially important in Cameroon's warm climate."
-                                        : "💧 Buvez au moins 1,5L d'eau par jour — important dans le climat chaud du Cameroun."}
+                                        ? "Drink at least 1.5L of water daily — especially important in Cameroon's warm climate."
+                                        : "Buvez au moins 1,5L d'eau par jour — important dans le climat chaud du Cameroun."}
                                 </p>
                             </div>
 
@@ -506,23 +541,7 @@ const UserDashboard = () => {
                             {lang === 'EN' ? 'Health Reminders & Notifications' : 'Rappels Santé & Notifications'}
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                            {[
-                                {
-                                    icon: <FaAmbulance size={18} />, color: '#ef4444', bg: '#fef2f2', border: '#fecaca',
-                                    title: lang === 'EN' ? '🚨 Emergency Reminder' : '🚨 Rappel Urgence',
-                                    desc: lang === 'EN' ? 'Save emergency contacts and first aid steps for offline access.' : "Sauvegardez les contacts d'urgence et les étapes de premiers secours hors ligne."
-                                },
-                                {
-                                    icon: <FaCapsules size={18} />, color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0',
-                                    title: lang === 'EN' ? '💊 Medication Tip' : '💊 Conseil Médicament',
-                                    desc: lang === 'EN' ? 'Never take medications without checking dosage and precautions first.' : 'Ne prenez jamais de médicaments sans vérifier le dosage et les précautions.'
-                                },
-                                {
-                                    icon: <MdPsychology size={20} />, color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe',
-                                    title: lang === 'EN' ? '🤖 AI Health Tip' : '🤖 Conseil IA Santé',
-                                    desc: lang === 'EN' ? 'Ask our AI assistant about malaria prevention during the rainy season in Cameroon.' : "Demandez à notre assistant IA des conseils sur la prévention du paludisme."
-                                },
-                            ].map((notif, i) => (
+                            {notifications.map((notif, i) => (
                                 <div key={i} style={{
                                     background: notif.bg,
                                     border: `1px solid ${notif.border}`,
@@ -530,15 +549,19 @@ const UserDashboard = () => {
                                     display: 'flex', alignItems: 'flex-start', gap: '10px'
                                 }}>
                                     <div style={{
-                                        width: '36px', height: '36px', background: 'white',
-                                        borderRadius: '9px', flexShrink: 0,
+                                        width: '38px', height: '38px', background: 'white',
+                                        borderRadius: '10px', flexShrink: 0,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        boxShadow: '0 1px 6px rgba(0,0,0,0.06)'
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.07)'
                                     }}>
                                         <span style={{ color: notif.color }}>{notif.icon}</span>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '0.83rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.3rem' }}>
+                                        <div style={{
+                                            fontSize: '0.85rem', fontWeight: 700,
+                                            color: '#0f172a', marginBottom: '0.3rem',
+                                            display: 'flex', alignItems: 'center', gap: '6px'
+                                        }}>
                                             {notif.title}
                                         </div>
                                         <div style={{ fontSize: '0.77rem', color: '#475569', lineHeight: 1.5 }}>
