@@ -75,16 +75,19 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+import dj_database_url
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "healthcaredb",
-        "USER": "postgres",
-        "PASSWORD": "postgres123",
-        "HOST": "localhost",
-        "PORT": "5433",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'healthcaredb',       # Nom n otre base donnees PostgreSQL
+        'USER': 'postgres',     # nous sommes connectes avec le nom d'utilisateur postgres
+        'PASSWORD': 'Nagatopain2007',#  le mot de passe pour notre connexion
+        'HOST': 'localhost',           # on peut utiliser aussi une adresse Ip si on veut connecter a distance
+        'PORT': '5432',                # Port PostgreSQL par défaut
     }
 }
+
 
 
 # Password validation
@@ -157,3 +160,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Google Auth / COOP Setting
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+
+# Media Files (Uploads)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

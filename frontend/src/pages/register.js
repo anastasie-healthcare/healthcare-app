@@ -7,7 +7,8 @@ import {
     FaAmbulance, FaPills, FaShieldAlt
 } from 'react-icons/fa';
 import { MdLocalHospital } from 'react-icons/md';
-import { registerUser } from '../services/api';
+import { GoogleLogin } from '@react-oauth/google';
+import { registerUser, googleLogin } from '../services/api';
 
 const Register = () => {
     const [lang, setLang] = useState('EN');
@@ -59,6 +60,38 @@ const Register = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setLoading(true);
+        setError('');
+        try {
+            const response = await googleLogin({ credential: credentialResponse.credential });
+            const { access, refresh, user } = response.data;
+
+            localStorage.setItem('access_token', access);
+            localStorage.setItem('refresh_token', refresh);
+            localStorage.setItem('user', JSON.stringify(user));
+
+            if (user.role === 'doctor') {
+                window.location.href = '/doctor/dashboard';
+            } else if (user.role === 'admin') {
+                window.location.href = '/admin/dashboard';
+            } else {
+                window.location.href = '/user/dashboard';
+            }
+        } catch (err) {
+            setError(
+                err.response?.data?.error ||
+                (lang === 'EN' ? 'Google Login failed.' : 'La connexion avec Google a échoué.')
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleError = () => {
+        setError(lang === 'EN' ? 'Google Login failed.' : 'La connexion avec Google a échoué.');
     };
     const inputStyle = {
         width: '100%', padding: '0.8rem 1rem 0.8rem 2.8rem',
@@ -487,6 +520,21 @@ const Register = () => {
                             }
                             {!loading && <FaArrowRight size={14} />}
                         </button>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.2rem 0' }}>
+                            <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                            <span style={{ color: '#94a3b8', fontSize: '0.82rem', fontWeight: 500 }}>
+                                {lang === 'EN' ? 'OR' : 'OU'}
+                            </span>
+                            <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                            />
+                        </div>
                     </form>
 
                     {/* Divider */}

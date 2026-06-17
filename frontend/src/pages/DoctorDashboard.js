@@ -2,24 +2,62 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FaUserMd, FaUser, FaBell, FaSignOutAlt,
-    FaChevronRight, FaSearch, FaStethoscope,
-    FaCapsules, FaCheckCircle, FaTimesCircle,
-    FaClock, FaComments, FaCalendarAlt,
-    FaFileMedical, FaToggleOn, FaToggleOff
+    FaSearch, FaStethoscope, FaCheckCircle,
+    FaCalendarAlt, FaFileMedical,
+    FaToggleOn, FaToggleOff, FaSpinner,
+    FaVideo, FaMicrophone, FaPhoneSlash,
+    FaPlus, FaMicrophoneSlash, FaVideoSlash
 } from 'react-icons/fa';
 import {
     MdDashboard, MdLocalHospital,
-    MdHealthAndSafety, MdPsychology,
+    MdPsychology,
     MdOutlineTipsAndUpdates, MdPendingActions
 } from 'react-icons/md';
-import { RiMentalHealthFill } from 'react-icons/ri';
+import { 
+    getAppointments, updateAppointment, getMedicalNotes, 
+    createMedicalNote, updateDoctorProfile, getEstablishments,
+    getMyDoctorProfile
+} from '../services/api';
 
 const DoctorDashboard = () => {
     const [user, setUser] = useState(null);
-    const [lang, setLang] = useState('EN');
+    const [lang, setLang] = useState('FR');
     const [activeMenu, setActiveMenu] = useState('dashboard');
     const [searchQuery, setSearchQuery] = useState('');
     const [isAvailable, setIsAvailable] = useState(true);
+    
+    // API loading state
+    const [appointments, setAppointments] = useState([]);
+    const [establishments, setEstablishments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    
+    // Selected patient for notes / history
+    const [selectedPatient, setSelectedPatient] = useState(null);
+    const [patientNotes, setPatientNotes] = useState([]);
+    const [newNoteContent, setNewNoteContent] = useState('');
+    const [newNotePrescription, setNewNotePrescription] = useState('');
+    const [notesLoading, setNotesLoading] = useState(false);
+    
+    // Doctor profile settings state
+    const [specialty, setSpecialty] = useState('Médecine Générale');
+    const [licenseNumber, setLicenseNumber] = useState('');
+    const [selectedEstablishment, setSelectedEstablishment] = useState('');
+    const [bio, setBio] = useState('');
+    const [fee, setFee] = useState(25.00);
+    const [profileMessage, setProfileMessage] = useState('');
+    
+    // Teleconsultation state
+    const [isVideoMuted, setIsVideoMuted] = useState(false);
+    const [isAudioMuted, setIsAudioMuted] = useState(false);
+    const [teleChat, setTeleChat] = useState([]);
+    const [teleInput, setTeleInput] = useState('');
+    const [telePatient, setTelePatient] = useState(null);
+
+    // Postpone state
+    const [postponeAppointmentId, setPostponeAppointmentId] = useState(null);
+    const [newPostponeDate, setNewPostponeDate] = useState('');
+    const [newPostponeSlot, setNewPostponeSlot] = useState('09:00 - 09:30');
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -34,7 +72,33 @@ const DoctorDashboard = () => {
             return;
         }
         setUser(parsedUser);
+        fetchData();
     }, [navigate]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const apptsResponse = await getAppointments();
+            setAppointments(apptsResponse.data);
+            
+            const estResponse = await getEstablishments();
+            setEstablishments(estResponse.data);
+
+            const profileResponse = await getMyDoctorProfile();
+            if (profileResponse.data) {
+                const profile = profileResponse.data;
+                setSpecialty(profile.specialty || 'Médecine Générale');
+                setLicenseNumber(profile.license_number || '');
+                setSelectedEstablishment(profile.establishment || '');
+                setBio(profile.bio || '');
+                setFee(parseFloat(profile.consultation_fee) || 25.00);
+            }
+        } catch (err) {
+            console.error('Error fetching doctor dashboard data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleLogout = () => {
         localStorage.removeItem('access_token');
@@ -43,100 +107,834 @@ const DoctorDashboard = () => {
         navigate('/login');
     };
 
+    const handleStatusUpdate = async (apptId, newStatus, dateVal = null, slotVal = null) => {
+        try {
+            const payload = { id: apptId, status: newStatus };
+            if (dateVal) payload.date = dateVal;
+            if (slotVal) payload.time_slot = slotVal;
+
+            await updateAppointment(payload);
+            setPostponeAppointmentId(null);
+            fetchData();
+        } catch (err) {
+            console.error('Error updating appointment status:', err);
+        }
+    };
+
+    const loadPatientDetails = async (patient) => {
+        setSelectedPatient(patient);
+        setNotesLoading(true);
+        setNewNoteContent('');
+        setNewNotePrescription('');
+        try {
+            const res = await getMedicalNotes(patient.id);
+            setPatientNotes(res.data);
+        } catch (err) {
+            console.error('Error fetching patient notes:', err);
+        } finally {
+            setNotesLoading(false);
+        }
+    };
+
+    const handleAddMedicalNote = async (e) => {
+        e.preventDefault();
+        if (!newNoteContent.trim()) return;
+
+        try {
+            await createMedicalNote({
+                patient: selectedPatient.id,
+                content: newNoteContent,
+                prescription: newNotePrescription
+            });
+            setNewNoteContent('');
+            setNewNotePrescription('');
+            // Reload patient notes
+            const res = await getMedicalNotes(selectedPatient.id);
+            setPatientNotes(res.data);
+        } catch (err) {
+            console.error('Error adding medical note:', err);
+        }
+    };
+
+    const handleUpdateProfile = async (e) => {
+        e.preventDefault();
+        setProfileMessage('');
+        try {
+            await updateDoctorProfile({
+                specialty,
+                license_number: licenseNumber,
+                establishment: selectedEstablishment || null,
+                bio,
+                consultation_fee: fee
+            });
+            setProfileMessage(lang === 'EN' ? 'Profile updated successfully!' : 'Profil mis à jour avec succès !');
+        } catch (err) {
+            console.error('Error updating doctor profile:', err);
+            setProfileMessage(lang === 'EN' ? 'Failed to update profile.' : 'Échec de la mise à jour.');
+        }
+    };
+
+    const startTeleconsultation = (appointment) => {
+        setTelePatient(appointment.patient_detail);
+        setActiveMenu('teleconsultation');
+        setTeleChat([
+            { sender: 'system', text: lang === 'EN' ? 'Call initialized. Patient connected.' : 'Appel initialisé. Patient connecté.' }
+        ]);
+    };
+
+    const sendTeleMessage = (e) => {
+        e.preventDefault();
+        if (!teleInput.trim()) return;
+        setTeleChat([...teleChat, { sender: 'doctor', text: teleInput }]);
+        setTeleInput('');
+        // Simulated patient response after 1.5s
+        setTimeout(() => {
+            setTeleChat(prev => [...prev, { sender: 'patient', text: lang === 'EN' ? 'Yes doctor, I hear you.' : 'Oui docteur, je vous entends bien.' }]);
+        }, 1500);
+    };
+
+    // Filter unique patients from appointments list
+    const patientsList = Array.from(new Map(appointments.map(a => [a.patient_detail.id, a.patient_detail])).values());
+
     const menuItems = [
-        { id: 'dashboard', icon: <MdDashboard size={20} />, label: lang === 'EN' ? 'Dashboard' : 'Tableau de bord', color: '#0d6efd' },
-        { id: 'requests', icon: <MdPendingActions size={22} />, label: lang === 'EN' ? 'Consultation Requests' : 'Demandes de Consultation', color: '#ef4444', badge: 3 },
-        { id: 'chats', icon: <FaComments size={18} />, label: lang === 'EN' ? 'Patient Chats' : 'Discussions Patients', color: '#10b981', badge: 2 },
+        { id: 'dashboard', icon: <MdDashboard size={20} />, label: lang === 'EN' ? 'Overview' : "Vue d'ensemble", color: '#0d6efd' },
         { id: 'appointments', icon: <FaCalendarAlt size={18} />, label: lang === 'EN' ? 'Appointments' : 'Rendez-vous', color: '#f59e0b' },
-        { id: 'records', icon: <FaFileMedical size={18} />, label: lang === 'EN' ? 'Medical Records' : 'Dossiers Médicaux', color: '#8b5cf6' },
-        { id: 'profile', icon: <FaUserMd size={18} />, label: lang === 'EN' ? 'My Profile' : 'Mon Profil', color: '#14b8a6' },
+        { id: 'records', icon: <FaFileMedical size={18} />, label: lang === 'EN' ? 'Patient Files' : 'Dossiers Patients', color: '#8b5cf6' },
+        { id: 'assistant_ia', icon: <MdPsychology size={22} />, label: lang === 'EN' ? 'Doctor AI Helper' : 'Assistant IA Docteur', color: '#10b981' },
+        { id: 'teleconsultation', icon: <FaVideo size={18} />, label: lang === 'EN' ? 'Telehealth Stub' : 'Téléconsultation', color: '#ec4899' },
+        { id: 'profile', icon: <FaUserMd size={18} />, label: lang === 'EN' ? 'Professional Profile' : 'Profil Professionnel', color: '#14b8a6' },
     ];
 
     const stats = [
         {
             icon: <MdPendingActions size={26} />,
-            bg: 'linear-gradient(135deg, #ef4444, #f97316)',
-            label: lang === 'EN' ? 'Pending Requests' : 'Demandes en attente',
-            value: '3',
-            desc: lang === 'EN' ? 'Awaiting your response' : 'En attente de votre réponse',
-            shadow: 'rgba(239,68,68,0.3)'
-        },
-        {
-            icon: <FaComments size={24} />,
-            bg: 'linear-gradient(135deg, #10b981, #34d399)',
-            label: lang === 'EN' ? 'Active Chats' : 'Discussions Actives',
-            value: '2',
-            desc: lang === 'EN' ? 'Ongoing consultations' : 'Consultations en cours',
-            shadow: 'rgba(16,185,129,0.3)'
+            bg: 'linear-gradient(135deg, #f59e0b, #f97316)',
+            label: lang === 'EN' ? 'Pending Booking' : 'Réservations en attente',
+            value: appointments.filter(a => a.status === 'pending').length,
+            desc: lang === 'EN' ? 'Awaiting confirmation' : 'En attente de confirmation',
+            shadow: 'rgba(245,158,11,0.2)'
         },
         {
             icon: <FaCalendarAlt size={24} />,
             bg: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-            label: lang === 'EN' ? 'Today\'s Appointments' : 'Rendez-vous du jour',
-            value: '5',
-            desc: lang === 'EN' ? 'Scheduled for today' : 'Programmés pour aujourd\'hui',
-            shadow: 'rgba(59,130,246,0.3)'
+            label: lang === 'EN' ? 'Active Scheduled' : 'Confirmés',
+            value: appointments.filter(a => a.status === 'confirmed').length,
+            desc: lang === 'EN' ? 'Scheduled appointments' : 'Rendez-vous confirmés',
+            shadow: 'rgba(59,130,246,0.2)'
+        },
+        {
+            icon: <FaUser size={24} />,
+            bg: 'linear-gradient(135deg, #10b981, #34d399)',
+            label: lang === 'EN' ? 'My Patients' : 'Mes Patients',
+            value: patientsList.length,
+            desc: lang === 'EN' ? 'Unique patients treated' : 'Patients distincts traités',
+            shadow: 'rgba(16,185,129,0.2)'
         },
         {
             icon: <FaCheckCircle size={24} />,
-            bg: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-            label: lang === 'EN' ? 'Completed' : 'Complétées',
-            value: '28',
-            desc: lang === 'EN' ? 'Total consultations' : 'Consultations totales',
-            shadow: 'rgba(139,92,246,0.3)'
+            bg: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+            label: lang === 'EN' ? 'Completed Consultations' : 'Terminées',
+            value: appointments.filter(a => a.status === 'completed').length,
+            desc: lang === 'EN' ? 'Total finished checks' : 'Consultations archivées',
+            shadow: 'rgba(139,92,246,0.2)'
         },
     ];
 
-    const consultationRequests = [
-        {
-            name: 'Marie Nguemo',
-            age: 34,
-            issue: lang === 'EN' ? 'High fever and headache for 3 days' : 'Fièvre élevée et maux de tête depuis 3 jours',
-            time: lang === 'EN' ? '10 minutes ago' : 'Il y a 10 minutes',
-            urgency: 'high',
-            avatar: 'MN'
-        },
-        {
-            name: 'Paul Biya Jr.',
-            age: 45,
-            issue: lang === 'EN' ? 'Chest pain and shortness of breath' : 'Douleur thoracique et essoufflement',
-            time: lang === 'EN' ? '25 minutes ago' : 'Il y a 25 minutes',
-            urgency: 'high',
-            avatar: 'PB'
-        },
-        {
-            name: 'Fatima Oumarou',
-            age: 28,
-            issue: lang === 'EN' ? 'Malaria symptoms — need prescription' : 'Symptômes de paludisme — besoin d\'ordonnance',
-            time: lang === 'EN' ? '1 hour ago' : 'Il y a 1 heure',
-            urgency: 'medium',
-            avatar: 'FO'
-        },
-    ];
+    // Filter appointments by search query
+    const filteredAppointments = appointments.filter(appt => 
+        appt.patient_detail.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (appt.symptoms && appt.symptoms.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
 
-    const activeChats = [
-        {
-            name: 'Jean Kamga',
-            lastMessage: lang === 'EN' ? 'Thank you doctor, I will take the medication' : 'Merci docteur, je vais prendre le médicament',
-            time: lang === 'EN' ? '5 min ago' : 'Il y a 5 min',
-            unread: 0,
-            avatar: 'JK',
-            color: '#10b981'
-        },
-        {
-            name: 'Sylvie Mballa',
-            lastMessage: lang === 'EN' ? 'Doctor, my condition is getting worse' : 'Docteur, mon état s\'aggrave',
-            time: lang === 'EN' ? '12 min ago' : 'Il y a 12 min',
-            unread: 2,
-            avatar: 'SM',
-            color: '#ef4444'
-        },
-    ];
+    const renderActiveContent = () => {
+        if (loading) {
+            return (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column', gap: '12px' }}>
+                    <FaSpinner className="spin" size={36} color="#0d6efd" style={{ animation: 'spin 1.2s linear infinite' }} />
+                    <span style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>
+                        {lang === 'EN' ? 'Loading portal information...' : 'Chargement du portail professionnel...'}
+                    </span>
+                </div>
+            );
+        }
 
-    const urgencyColor = (urgency) => {
-        if (urgency === 'high') return { bg: '#fef2f2', border: '#fecaca', text: '#ef4444', label: lang === 'EN' ? 'Urgent' : 'Urgent' };
-        if (urgency === 'medium') return { bg: '#fffbeb', border: '#fde68a', text: '#f59e0b', label: lang === 'EN' ? 'Moderate' : 'Modéré' };
-        return { bg: '#f0fdf4', border: '#bbf7d0', text: '#10b981', label: lang === 'EN' ? 'Normal' : 'Normal' };
+        switch (activeMenu) {
+            case 'appointments':
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
+                            <h3 style={{ margin: '0 0 16px', color: '#1e293b', fontWeight: 800 }}>
+                                {lang === 'EN' ? 'Appointment Manager' : 'Gestionnaire des Rendez-vous'}
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {filteredAppointments.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                                        {lang === 'EN' ? 'No appointments match your search.' : 'Aucun rendez-vous ne correspond à la recherche.'}
+                                    </div>
+                                ) : (
+                                    filteredAppointments.map(appt => (
+                                        <div key={appt.id} style={{
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '12px',
+                                            padding: '16px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '12px',
+                                            background: appt.status === 'pending' ? '#fffbeb' : '#ffffff'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{
+                                                        width: '40px', height: '40px', borderRadius: '50%',
+                                                        background: 'linear-gradient(135deg, #0d6efd, #3b82f6)',
+                                                        color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        fontWeight: 700
+                                                    }}>
+                                                        {appt.patient_detail.username.slice(0,2).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#1e293b', fontWeight: 800 }}>
+                                                            {appt.patient_detail.username}
+                                                        </h4>
+                                                        <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+                                                            {appt.patient_detail.email} • {lang === 'EN' ? 'Slot' : 'Créneau'} : <strong>{appt.date} ({appt.time_slot})</strong>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span style={{
+                                                    background: appt.status === 'confirmed' ? '#f0fdf4' : appt.status === 'pending' ? '#fffbeb' : '#fef2f2',
+                                                    color: appt.status === 'confirmed' ? '#10b981' : appt.status === 'pending' ? '#f59e0b' : '#ef4444',
+                                                    padding: '4px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700,
+                                                    border: '1px solid currentColor'
+                                                }}>
+                                                    {appt.status_display}
+                                                </span>
+                                            </div>
+
+                                            {appt.symptoms && (
+                                                <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', background: '#f8fafc', padding: '10px', borderRadius: '8px', borderLeft: '3px solid #cbd5e1' }}>
+                                                    <strong>{lang === 'EN' ? 'Reported Symptoms:' : 'Symptômes signalés :'}</strong> {appt.symptoms}
+                                                </p>
+                                            )}
+
+                                            {/* Action triggers */}
+                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                                {appt.status === 'pending' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleStatusUpdate(appt.id, 'confirmed')}
+                                                            style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+                                                        >
+                                                            {lang === 'EN' ? 'Confirm' : 'Confirmer'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleStatusUpdate(appt.id, 'declined')}
+                                                            style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+                                                        >
+                                                            {lang === 'EN' ? 'Decline' : 'Refuser'}
+                                                        </button>
+                                                    </>
+                                                )}
+
+                                                {appt.status === 'confirmed' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => startTeleconsultation(appt)}
+                                                            style={{ padding: '8px 16px', background: '#ec4899', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                        >
+                                                            <FaVideo />
+                                                            {lang === 'EN' ? 'Start Telehealth' : 'Démarrer consultation'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleStatusUpdate(appt.id, 'completed')}
+                                                            style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+                                                        >
+                                                            {lang === 'EN' ? 'Mark Completed' : 'Marquer terminé'}
+                                                        </button>
+                                                    </>
+                                                )}
+
+                                                <button
+                                                    onClick={() => setPostponeAppointmentId(postponeAppointmentId === appt.id ? null : appt.id)}
+                                                    style={{ padding: '8px 16px', background: 'white', border: '1px solid #cbd5e1', color: '#475569', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+                                                >
+                                                    {lang === 'EN' ? 'Reschedule' : 'Reporter / Modifier'}
+                                                </button>
+                                            </div>
+
+                                            {postponeAppointmentId === appt.id && (
+                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', flexWrap: 'wrap', marginTop: '10px' }}>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>{lang === 'EN' ? 'New Date' : 'Nouvelle Date'}</label>
+                                                        <input type="date" value={newPostponeDate} onChange={e => setNewPostponeDate(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>{lang === 'EN' ? 'Time Slot' : 'Créneau'}</label>
+                                                        <select value={newPostponeSlot} onChange={e => setNewPostponeSlot(e.target.value)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                                            <option value="09:00 - 09:30">09:00 - 09:30</option>
+                                                            <option value="10:00 - 10:30">10:00 - 10:30</option>
+                                                            <option value="11:00 - 11:30">11:00 - 11:30</option>
+                                                            <option value="14:00 - 14:30">14:00 - 14:30</option>
+                                                            <option value="15:00 - 15:30">15:00 - 15:30</option>
+                                                        </select>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleStatusUpdate(appt.id, 'postponed', newPostponeDate, newPostponeSlot)}
+                                                        style={{ padding: '8px 12px', background: '#0d6efd', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, marginTop: '14px' }}
+                                                    >
+                                                        {lang === 'EN' ? 'Apply' : 'Appliquer'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'records':
+                return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '20px', alignItems: 'flex-start' }}>
+                        {/* Patient directory */}
+                        <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0' }}>
+                            <h3 style={{ margin: '0 0 16px', color: '#1e293b', fontWeight: 800, fontSize: '1.1rem' }}>
+                                {lang === 'EN' ? 'My Patients Directory' : 'Annuaire de mes Patients'}
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {patientsList.length === 0 ? (
+                                    <div style={{ color: '#64748b', fontSize: '0.85rem' }}>{lang === 'EN' ? 'No patients recorded yet.' : 'Aucun patient enregistré.'}</div>
+                                ) : (
+                                    patientsList.map(pat => (
+                                        <div
+                                            key={pat.id}
+                                            onClick={() => loadPatientDetails(pat)}
+                                            style={{
+                                                padding: '12px 14px',
+                                                borderRadius: '10px',
+                                                border: `1.5px solid ${selectedPatient?.id === pat.id ? '#8b5cf6' : '#e2e8f0'}`,
+                                                background: selectedPatient?.id === pat.id ? '#f5f3ff' : '#f8fafc',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: 700, fontSize: '0.88rem', color: selectedPatient?.id === pat.id ? '#6d28d9' : '#1e293b' }}>
+                                                {pat.username}
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{pat.email}</div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Patient folder details */}
+                        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', minHeight: '400px' }}>
+                            {!selectedPatient ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', color: '#94a3b8' }}>
+                                    <FaFileMedical size={48} style={{ marginBottom: '12px' }} />
+                                    <span>{lang === 'EN' ? 'Select a patient to view files and notes' : 'Sélectionnez un patient pour voir ses notes et documents.'}</span>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div>
+                                        <h3 style={{ margin: '0 0 4px', color: '#1e293b', fontWeight: 800 }}>
+                                            {selectedPatient.username}
+                                        </h3>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>{selectedPatient.email}</p>
+                                    </div>
+
+                                    {/* Medical note creator */}
+                                    <form onSubmit={handleAddMedicalNote} style={{ border: '1px solid #ddd6fe', borderRadius: '12px', padding: '16px', background: '#f5f3ff' }}>
+                                        <h4 style={{ margin: '0 0 10px', color: '#6d28d9', fontSize: '0.88rem', fontWeight: 800 }}>
+                                            ✍️ {lang === 'EN' ? 'Add Clinical Note & Prescription' : 'Rédiger une Observation & Ordonnance'}
+                                        </h4>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <textarea
+                                                required
+                                                placeholder={lang === 'EN' ? "Diagnostic observation details..." : "Détails de l'observation diagnostique..."}
+                                                value={newNoteContent}
+                                                onChange={e => setNewNoteContent(e.target.value)}
+                                                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', height: '70px', resize: 'none', fontFamily: 'inherit', fontSize: '0.82rem' }}
+                                            />
+                                            <textarea
+                                                placeholder={lang === 'EN' ? "Prescription drugs & dosage details..." : "Médicaments prescrits & détails de posologie..."}
+                                                value={newNotePrescription}
+                                                onChange={e => setNewNotePrescription(e.target.value)}
+                                                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', height: '50px', resize: 'none', fontFamily: 'inherit', fontSize: '0.82rem' }}
+                                            />
+                                            <button type="submit" style={{ padding: '8px 16px', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <FaPlus />
+                                                {lang === 'EN' ? 'Add Note' : 'Ajouter Note'}
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    {/* Notes history */}
+                                    <div>
+                                        <h4 style={{ margin: '0 0 10px', color: '#1e293b', fontSize: '0.9rem', fontWeight: 800 }}>
+                                            📋 {lang === 'EN' ? 'Clinical Notes History' : 'Historique des Observations'}
+                                        </h4>
+                                        {notesLoading ? (
+                                            <FaSpinner className="spin" style={{ animation: 'spin 1.2s linear infinite' }} />
+                                        ) : patientNotes.length === 0 ? (
+                                            <span style={{ fontSize: '0.82rem', color: '#64748b' }}>{lang === 'EN' ? 'No history notes recorded yet.' : 'Aucune observation enregistrée.'}</span>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                {patientNotes.map(note => (
+                                                    <div key={note.id} style={{ padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8', marginBottom: '6px' }}>
+                                                            <span>Dr. {note.doctor_detail.username}</span>
+                                                            <span>{new Date(note.created_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                        <p style={{ margin: '0 0 8px', fontSize: '0.82rem', color: '#334155', lineHeight: 1.5 }}>
+                                                            {note.content}
+                                                        </p>
+                                                        {note.prescription && (
+                                                            <div style={{ fontSize: '0.78rem', color: '#0f766e', background: '#e6fffa', padding: '8px', borderRadius: '6px', border: '1px solid #b2f5ea' }}>
+                                                                <strong>Ordonnance :</strong> {note.prescription}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            case 'assistant_ia':
+                return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '20px', alignItems: 'flex-start' }}>
+                        {/* Select patient */}
+                        <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0' }}>
+                            <h3 style={{ margin: '0 0 16px', color: '#1e293b', fontWeight: 800, fontSize: '1.1rem' }}>
+                                {lang === 'EN' ? 'Select Patient for AI Digest' : 'Sélectionner Patient pour Synthèse IA'}
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {patientsList.map(pat => (
+                                    <div
+                                        key={pat.id}
+                                        onClick={() => loadPatientDetails(pat)}
+                                        style={{
+                                            padding: '12px 14px',
+                                            borderRadius: '10px',
+                                            border: `1.5px solid ${selectedPatient?.id === pat.id ? '#10b981' : '#e2e8f0'}`,
+                                            background: selectedPatient?.id === pat.id ? '#ecfdf5' : '#f8fafc',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: selectedPatient?.id === pat.id ? '#047857' : '#1e293b' }}>
+                                            {pat.username}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{pat.email}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* AI Summary report */}
+                        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', minHeight: '400px' }}>
+                            {!selectedPatient ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', color: '#94a3b8' }}>
+                                    <MdPsychology size={54} color="#10b981" style={{ marginBottom: '12px' }} />
+                                    <span>{lang === 'EN' ? 'Select a patient to generate AI summaries and correlations.' : 'Sélectionnez un patient pour générer son rapport de diagnostic IA.'}</span>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <MdPsychology size={28} color="#10b981" />
+                                        <h3 style={{ margin: 0, color: '#1e293b', fontWeight: 800 }}>
+                                            {lang === 'EN' ? 'Clinical Assistant IA' : 'Assistant IA de Cabinet Clinique'}
+                                        </h3>
+                                    </div>
+                                    
+                                    {/* Empathy alert */}
+                                    <div style={{ background: '#f0fdf4', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '16px', color: '#047857', fontSize: '0.82rem', lineHeight: 1.6 }}>
+                                        <strong>ℹ️ Note à l'attention du praticien :</strong> L'IA réorganise les données saisies par le patient et suggère des pistes compatibles. Elle ne doit en aucun cas remplacer le jugement diagnostique clinique du médecin.
+                                    </div>
+
+                                    {/* Patient history summary */}
+                                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px', borderRadius: '12px' }}>
+                                        <h4 style={{ margin: '0 0 8px', fontSize: '0.88rem', color: '#1e293b', fontWeight: 800 }}>
+                                            📋 {lang === 'EN' ? 'Synthesized History & Allergies' : 'Antécédents & Allergies Synthétisés'}
+                                        </h4>
+                                        <p style={{ margin: '0 0 6px', fontSize: '0.82rem', color: '#475569' }}>
+                                            <strong>{lang === 'EN' ? 'Allergies declared:' : 'Allergies déclarées :'}</strong> {selectedPatient.allergies || (lang === 'EN' ? 'None declared' : 'Aucune allergie signalée')}
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569' }}>
+                                            <strong>{lang === 'EN' ? 'Medical history summary:' : 'Historique médical synthétique :'}</strong> {selectedPatient.medical_history || (lang === 'EN' ? 'No history recorded' : 'Aucun antécédent particulier')}
+                                        </p>
+                                    </div>
+
+                                    {/* AI compatible hypothesis */}
+                                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '16px', borderRadius: '12px' }}>
+                                        <h4 style={{ margin: '0 0 8px', fontSize: '0.88rem', color: '#b45309', fontWeight: 800 }}>
+                                            💡 {lang === 'EN' ? 'Compatible Diagnostic Hypotheses' : 'Hypothèses de Corrélation Compatibles'}
+                                        </h4>
+                                        <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <li style={{ fontSize: '0.82rem', color: '#78350f', lineHeight: 1.5 }}>
+                                                <strong>Paludisme Suspecté (Confiance: 75%) :</strong> Le patient présente de la fièvre et des maux de tête cycliques. Rechercher frissons ou fatigue généralisée.
+                                            </li>
+                                            <li style={{ fontSize: '0.82rem', color: '#78350f', lineHeight: 1.5 }}>
+                                                <strong>Gastro-entérite (Confiance: 40%) :</strong> En cas de douleurs abdominales associées à des nausées.
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            case 'teleconsultation':
+                return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', minHeight: '450px' }}>
+                        {/* Video Feed */}
+                        <div style={{ background: '#1e293b', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px', position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', zIndex: 5 }}>
+                                <span style={{ background: 'rgba(0,0,0,0.5)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }} />
+                                    {lang === 'EN' ? 'LIVE SESSION' : 'DIRECT TELECONSULTATION'}
+                                </span>
+                                {telePatient && (
+                                    <span style={{ background: 'rgba(0,0,0,0.5)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '0.72rem' }}>
+                                        Patient: {telePatient.username}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Camera views */}
+                            <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', position: 'relative', margin: '20px 0' }}>
+                                {isVideoMuted ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#94a3b8' }}>
+                                        <FaVideoSlash size={48} style={{ marginBottom: '10px' }} />
+                                        <span>{lang === 'EN' ? 'Camera is muted' : 'Caméra désactivée'}</span>
+                                    </div>
+                                ) : (
+                                    <div style={{ width: '100%', height: '240px', background: 'linear-gradient(135deg, #0f172a, #19233c)', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid #334155', position: 'relative', overflow: 'hidden' }}>
+                                        <FaUser size={64} color="#475569" style={{ marginBottom: '12px', opacity: 0.6 }} />
+                                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.02em', zIndex: 2 }}>
+                                            {lang === 'EN' ? 'SECURE VIDEO LINK - ACTIVE' : 'LIAISON VIDÉO SÉCURISÉE - ACTIVE'}
+                                        </span>
+                                        <span style={{ color: '#0ea5e9', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px', zIndex: 2 }}>
+                                            1080p • 60 FPS • Latency: 24ms
+                                        </span>
+                                        
+                                        {/* ECG animated overlay graph */}
+                                        <svg width="100%" height="45" viewBox="0 0 300 45" style={{ position: 'absolute', bottom: '10px', left: 0, right: 0, opacity: 0.5, pointerEvents: 'none' }}>
+                                            <path d="M0,22 L60,22 L70,8 L80,36 L90,22 L130,22 L140,4 L150,40 L160,22 L200,22 L210,8 L220,36 L230,22 L300,22" fill="none" stroke="#10b981" strokeWidth="2.5" strokeDasharray="600" strokeDashoffset="600" style={{ animation: 'ecg-draw 3s linear infinite' }} />
+                                        </svg>
+                                    </div>
+                                )}
+
+                                {/* Self view */}
+                                <div style={{ position: 'absolute', bottom: '10px', right: '10px', width: '90px', height: '70px', background: '#334155', borderRadius: '8px', border: '1.5px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span style={{ fontSize: '0.55rem', color: '#94a3b8' }}>{lang === 'EN' ? 'Doctor (You)' : 'Docteur (Vous)'}</span>
+                                </div>
+                            </div>
+
+                            {/* Controls */}
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', zIndex: 5 }}>
+                                <button
+                                    onClick={() => setIsAudioMuted(!isAudioMuted)}
+                                    style={{
+                                        width: '44px', height: '44px', borderRadius: '50%', border: 'none', cursor: 'pointer',
+                                        background: isAudioMuted ? '#ef4444' : '#475569', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}
+                                >
+                                    {isAudioMuted ? <FaMicrophoneSlash size={18} /> : <FaMicrophone size={18} />}
+                                </button>
+                                <button
+                                    onClick={() => setIsVideoMuted(!isVideoMuted)}
+                                    style={{
+                                        width: '44px', height: '44px', borderRadius: '50%', border: 'none', cursor: 'pointer',
+                                        background: isVideoMuted ? '#ef4444' : '#475569', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}
+                                >
+                                    {isVideoMuted ? <FaVideoSlash size={18} /> : <FaVideo size={18} />}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setTelePatient(null);
+                                        setActiveMenu('dashboard');
+                                    }}
+                                    style={{
+                                        width: '44px', height: '44px', borderRadius: '50%', border: 'none', cursor: 'pointer',
+                                        background: '#ef4444', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}
+                                >
+                                    <FaPhoneSlash size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Consultation chat */}
+                        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: 800, fontSize: '0.85rem' }}>
+                                💬 Consultation Chat
+                            </div>
+                            <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '300px' }}>
+                                {teleChat.map((msg, i) => (
+                                    <div key={i} style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '8px',
+                                        fontSize: '0.78rem',
+                                        maxWidth: '85%',
+                                        alignSelf: msg.sender === 'doctor' ? 'flex-end' : msg.sender === 'system' ? 'center' : 'flex-start',
+                                        background: msg.sender === 'doctor' ? '#ec4899' : msg.sender === 'system' ? '#f1f5f9' : '#e2e8f0',
+                                        color: msg.sender === 'doctor' ? 'white' : '#1e293b',
+                                        textAlign: msg.sender === 'system' ? 'center' : 'left'
+                                    }}>
+                                        {msg.text}
+                                    </div>
+                                ))}
+                            </div>
+                            <form onSubmit={sendTeleMessage} style={{ display: 'flex', borderTop: '1px solid #e2e8f0' }}>
+                                <input
+                                    type="text"
+                                    placeholder={lang === 'EN' ? "Type message..." : "Saisir un message..."}
+                                    value={teleInput}
+                                    onChange={e => setTeleInput(e.target.value)}
+                                    style={{ flex: 1, border: 'none', padding: '10px 14px', outline: 'none', fontSize: '0.8rem' }}
+                                />
+                                <button type="submit" style={{ padding: '10px 16px', background: '#ec4899', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>
+                                    Send
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            case 'profile':
+                return (
+                    <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', maxWidth: '600px' }}>
+                        <h3 style={{ margin: '0 0 16px', color: '#1e293b', fontWeight: 800 }}>
+                            {lang === 'EN' ? 'Professional Details Settings' : 'Paramètres du Profil Professionnel'}
+                        </h3>
+                        <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                                    {lang === 'EN' ? 'Medical Specialty' : 'Spécialité Médicale'}
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={specialty}
+                                    onChange={e => setSpecialty(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                                    {lang === 'EN' ? 'Professional License Number' : 'Numéro de Licence Professionnelle'}
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={licenseNumber}
+                                    onChange={e => setLicenseNumber(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                                    {lang === 'EN' ? 'Associated Medical Establishment' : 'Établissement Médical Rattaché'}
+                                </label>
+                                <select
+                                    value={selectedEstablishment}
+                                    onChange={e => setSelectedEstablishment(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: 'white' }}
+                                >
+                                    <option value="">{lang === 'EN' ? '-- Select Establishment --' : '-- Sélectionner un Établissement --'}</option>
+                                    {establishments.map(est => (
+                                        <option key={est.id} value={est.id}>{est.name} ({est.type_display})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                                    {lang === 'EN' ? 'Consultation Fee ($)' : 'Tarif Consultation ($)'}
+                                </label>
+                                <input
+                                    type="number"
+                                    value={fee}
+                                    onChange={e => setFee(parseFloat(e.target.value))}
+                                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                                    {lang === 'EN' ? 'Biography' : 'Biographie'}
+                                </label>
+                                <textarea
+                                    value={bio}
+                                    onChange={e => setBio(e.target.value)}
+                                    style={{ width: '100%', height: '80px', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', resize: 'none', fontFamily: 'inherit' }}
+                                />
+                            </div>
+
+                            {profileMessage && (
+                                <div style={{ fontSize: '0.82rem', color: '#10b981', fontWeight: 700 }}>{profileMessage}</div>
+                            )}
+
+                            <button type="submit" style={{ padding: '12px', background: '#14b8a6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
+                                {lang === 'EN' ? 'Save Settings' : 'Sauvegarder les Paramètres'}
+                            </button>
+                        </form>
+                    </div>
+                );
+            case 'dashboard':
+            default:
+                // Normal Dashboard Overview
+                const pendingBooking = appointments.filter(a => a.status === 'pending');
+                return (
+                    <>
+                        {/* Hero banner */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #0c1445 0%, #1e3a5f 50%, #064e3b 100%)',
+                            borderRadius: '16px', padding: '1.8rem 2rem',
+                            marginBottom: '1.6rem', position: 'relative', overflow: 'hidden'
+                        }}>
+                            <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(13,110,253,0.15)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', bottom: '-25px', right: '160px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(16,185,129,0.12)', pointerEvents: 'none' }} />
+                            <div style={{ relative: 'zIndex', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.2rem' }}>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
+                                        <div style={{
+                                            width: '24px', height: '24px',
+                                            background: 'rgba(255,255,255,0.12)',
+                                            borderRadius: '6px',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                        }}>
+                                            <FaStethoscope color="#93c5fd" size={14} />
+                                        </div>
+                                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 500 }}>
+                                            {lang === 'EN' ? 'Doctor Portal — AnasHealthcare' : 'Portail Médecin — AnasHealthcare'}
+                                        </span>
+                                    </div>
+                                    <h2 style={{ color: 'white', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 0.5rem' }}>
+                                        {lang === 'EN' 
+                                            ? `You have ${pendingBooking.length} pending appointments` 
+                                            : `Vous avez ${pendingBooking.length} demandes de rendez-vous en attente`}
+                                    </h2>
+                                    <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.85rem', margin: 0, maxWidth: '400px', lineHeight: 1.6 }}>
+                                        {lang === 'EN'
+                                            ? 'Review patient records, accept consultations, and update your calendar or availability status.'
+                                            : 'Consultez les dossiers patients, validez vos rendez-vous et mettez à jour votre calendrier de consultation.'}
+                                    </p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap' }}>
+                                    <button onClick={() => setActiveMenu('appointments')} style={{
+                                        padding: '0.7rem 1.3rem',
+                                        background: 'linear-gradient(135deg, #ef4444, #f97316)',
+                                        color: 'white', border: 'none', borderRadius: '10px',
+                                        fontWeight: 700, cursor: 'pointer', fontSize: '0.86rem',
+                                        display: 'flex', alignItems: 'center', gap: '7px',
+                                        boxShadow: '0 5px 15px rgba(239,68,68,0.4)',
+                                        fontFamily: "'Inter', sans-serif"
+                                    }}>
+                                        <MdPendingActions size={16} />
+                                        {lang === 'EN' ? 'Manage Bookings' : 'Gérer les RDV'}
+                                    </button>
+                                    <button onClick={() => setActiveMenu('assistant_ia')} style={{
+                                        padding: '0.7rem 1.3rem',
+                                        background: 'rgba(255,255,255,0.1)',
+                                        backdropFilter: 'blur(8px)',
+                                        color: 'white', border: '1.5px solid rgba(255,255,255,0.18)',
+                                        borderRadius: '10px', fontWeight: 600,
+                                        cursor: 'pointer', fontSize: '0.86rem',
+                                        display: 'flex', alignItems: 'center', gap: '7px',
+                                        fontFamily: "'Inter', sans-serif"
+                                    }}>
+                                        <MdPsychology size={18} />
+                                        {lang === 'EN' ? 'AI Assistant' : 'Assistant IA'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Stats grid */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '1.1rem', marginBottom: '1.6rem'
+                        }}>
+                            {stats.map((stat, i) => (
+                                <div key={i} style={{
+                                    background: stat.bg, borderRadius: '14px', padding: '1.3rem',
+                                    boxShadow: `0 5px 18px ${stat.shadow}`,
+                                    position: 'relative', overflow: 'hidden'
+                                }}>
+                                    <div style={{ position: 'absolute', top: '-12px', right: '-12px', width: '65px', height: '65px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
+                                    <div style={{ relative: 'zIndex', zIndex: 1 }}>
+                                        <div style={{ color: 'rgba(255,255,255,0.85)', marginBottom: '0.65rem' }}>{stat.icon}</div>
+                                        <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', marginBottom: '0.12rem' }}>{stat.value}</div>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white', marginBottom: '0.12rem' }}>{stat.label}</div>
+                                        <div style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.68)' }}>{stat.desc}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Split layout: Pending Bookings + Reminders */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '20px' }}>
+                            {/* Pending Bookings List */}
+                            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0' }}>
+                                <h3 style={{ margin: '0 0 16px', color: '#1e293b', fontSize: '0.98rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '3px', height: '16px', background: 'linear-gradient(135deg, #f59e0b, #f97316)', borderRadius: '2px' }} />
+                                    {lang === 'EN' ? 'Recent Pending Bookings' : 'Demandes de Consultation Récentes'}
+                                </h3>
+                                {pendingBooking.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', fontSize: '0.85rem' }}>
+                                        {lang === 'EN' ? 'No pending appointments at this time.' : 'Aucune demande de consultation en attente.'}
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        {pendingBooking.slice(0,3).map(appt => (
+                                            <div key={appt.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fffbeb', border: '1px solid #fde68a', padding: '12px 16px', borderRadius: '12px' }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#1e293b' }}>{appt.patient_detail.username}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{appt.date} ({appt.time_slot})</div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setActiveMenu('appointments')}
+                                                    style={{ padding: '6px 12px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                                >
+                                                    {lang === 'EN' ? 'Process' : 'Traiter'}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Medical note summary & notifications */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                {/* Reminder */}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #0d6efd, #3b82f6)',
+                                    borderRadius: '16px', padding: '20px',
+                                    boxShadow: '0 5px 18px rgba(13,110,253,0.2)'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                        <MdOutlineTipsAndUpdates color="white" size={18} />
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                            {lang === 'EN' ? 'Medical Advisory' : 'Conseil Clinique'}
+                                        </span>
+                                    </div>
+                                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'white', lineHeight: 1.6, fontWeight: 500 }}>
+                                        {lang === 'EN'
+                                            ? 'Ensure you double check prescription dosage guidelines and register medical documents on patient records in due time.'
+                                            : 'Veillez à bien vérifier les posologies et à reporter les observations médicales sur les dossiers patients dès la fin des consultations.'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                );
+        }
     };
 
     return (
@@ -268,15 +1066,6 @@ const DoctorDashboard = () => {
                             }}>
                                 {item.label}
                             </span>
-                            {item.badge && (
-                                <div style={{
-                                    background: item.color, color: 'white',
-                                    borderRadius: '20px', padding: '1px 7px',
-                                    fontSize: '0.65rem', fontWeight: 700
-                                }}>
-                                    {item.badge}
-                                </div>
-                            )}
                         </div>
                     ))}
                 </nav>
@@ -300,7 +1089,7 @@ const DoctorDashboard = () => {
             </div>
 
             {/* ===== MAIN CONTENT ===== */}
-            <div style={{ marginLeft: '265px', flex: 1 }}>
+            <div style={{ marginLeft: '265px', flex: 1, display: 'flex', flexDirection: 'column' }}>
 
                 {/* Top header */}
                 <div style={{
@@ -337,14 +1126,14 @@ const DoctorDashboard = () => {
                             <FaSearch size={13} color="#94a3b8" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
                             <input
                                 type="text"
-                                placeholder={lang === 'EN' ? 'Search patients...' : 'Rechercher patients...'}
+                                placeholder={lang === 'EN' ? 'Search patient, symptoms...' : 'Rechercher patient, symptômes...'}
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 style={{
                                     padding: '0.58rem 1rem 0.58rem 2.2rem',
                                     border: '1.5px solid #e2e8f0',
                                     borderRadius: '9px', fontSize: '0.83rem',
-                                    outline: 'none', width: '190px',
+                                    outline: 'none', width: '220px',
                                     fontFamily: "'Inter', sans-serif",
                                     background: '#f8fafc', color: '#0f172a'
                                 }}
@@ -379,284 +1168,9 @@ const DoctorDashboard = () => {
                     </div>
                 </div>
 
-                <div style={{ padding: '1.6rem 2rem' }}>
-
-                    {/* Hero banner */}
-                    <div style={{
-                        background: 'linear-gradient(135deg, #0c1445 0%, #1e3a5f 50%, #064e3b 100%)',
-                        borderRadius: '16px', padding: '1.8rem 2rem',
-                        marginBottom: '1.6rem', position: 'relative', overflow: 'hidden'
-                    }}>
-                        <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(13,110,253,0.15)', pointerEvents: 'none' }} />
-                        <div style={{ position: 'absolute', bottom: '-25px', right: '160px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(16,185,129,0.12)', pointerEvents: 'none' }} />
-                        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.2rem' }}>
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
-                                    <div style={{
-                                        width: '24px', height: '24px',
-                                        background: 'rgba(255,255,255,0.12)',
-                                        borderRadius: '6px',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}>
-                                        <FaStethoscope color="#93c5fd" size={14} />
-                                    </div>
-                                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 500 }}>
-                                        {lang === 'EN' ? 'Doctor Portal — AnasHealthcare' : 'Portail Médecin — AnasHealthcare'}
-                                    </span>
-                                </div>
-                                <h2 style={{ color: 'white', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 0.5rem' }}>
-                                    {lang === 'EN' ? 'You have 3 pending consultation requests' : 'Vous avez 3 demandes de consultation en attente'}
-                                </h2>
-                                <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.85rem', margin: 0, maxWidth: '400px', lineHeight: 1.6 }}>
-                                    {lang === 'EN'
-                                        ? 'Review patient requests, manage your chats and update your availability status.'
-                                        : 'Examinez les demandes des patients, gérez vos discussions et mettez à jour votre disponibilité.'}
-                                </p>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap' }}>
-                                <button onClick={() => setActiveMenu('requests')} style={{
-                                    padding: '0.7rem 1.3rem',
-                                    background: 'linear-gradient(135deg, #ef4444, #f97316)',
-                                    color: 'white', border: 'none', borderRadius: '10px',
-                                    fontWeight: 700, cursor: 'pointer', fontSize: '0.86rem',
-                                    display: 'flex', alignItems: 'center', gap: '7px',
-                                    boxShadow: '0 5px 15px rgba(239,68,68,0.4)',
-                                    fontFamily: "'Inter', sans-serif"
-                                }}>
-                                    <MdPendingActions size={16} />
-                                    {lang === 'EN' ? 'View Requests' : 'Voir Demandes'}
-                                </button>
-                                <button onClick={() => setActiveMenu('chats')} style={{
-                                    padding: '0.7rem 1.3rem',
-                                    background: 'rgba(255,255,255,0.1)',
-                                    backdropFilter: 'blur(8px)',
-                                    color: 'white', border: '1.5px solid rgba(255,255,255,0.18)',
-                                    borderRadius: '10px', fontWeight: 600,
-                                    cursor: 'pointer', fontSize: '0.86rem',
-                                    display: 'flex', alignItems: 'center', gap: '7px',
-                                    fontFamily: "'Inter', sans-serif"
-                                }}>
-                                    <FaComments size={15} />
-                                    {lang === 'EN' ? 'Open Chats' : 'Ouvrir Discussions'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: '1.1rem', marginBottom: '1.6rem'
-                    }}>
-                        {stats.map((stat, i) => (
-                            <div key={i} style={{
-                                background: stat.bg, borderRadius: '14px', padding: '1.3rem',
-                                boxShadow: `0 5px 18px ${stat.shadow}`,
-                                cursor: 'pointer', position: 'relative', overflow: 'hidden'
-                            }}>
-                                <div style={{ position: 'absolute', top: '-12px', right: '-12px', width: '65px', height: '65px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
-                                <div style={{ position: 'relative', zIndex: 1 }}>
-                                    <div style={{ color: 'rgba(255,255,255,0.85)', marginBottom: '0.65rem' }}>{stat.icon}</div>
-                                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', marginBottom: '0.12rem' }}>{stat.value}</div>
-                                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white', marginBottom: '0.12rem' }}>{stat.label}</div>
-                                    <div style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.68)' }}>{stat.desc}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Two columns */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '1.4rem' }}>
-
-                        {/* Consultation Requests */}
-                        <div style={{
-                            background: 'white', borderRadius: '16px',
-                            padding: '1.5rem', border: '1px solid #e2e8f0',
-                            boxShadow: '0 2px 10px rgba(0,0,0,0.04)'
-                        }}>
-                            <h3 style={{
-                                fontSize: '0.95rem', fontWeight: 800, color: '#0f172a',
-                                marginBottom: '1.1rem', marginTop: 0,
-                                display: 'flex', alignItems: 'center', gap: '8px'
-                            }}>
-                                <div style={{ width: '3px', height: '16px', background: 'linear-gradient(135deg, #ef4444, #f97316)', borderRadius: '2px' }} />
-                                {lang === 'EN' ? 'Consultation Requests' : 'Demandes de Consultation'}
-                                <div style={{
-                                    background: '#ef4444', color: 'white',
-                                    borderRadius: '20px', padding: '1px 8px',
-                                    fontSize: '0.65rem', fontWeight: 700, marginLeft: 'auto'
-                                }}>3</div>
-                            </h3>
-                            {consultationRequests.map((req, i) => {
-                                const urgency = urgencyColor(req.urgency);
-                                return (
-                                    <div key={i} style={{
-                                        border: `1px solid ${urgency.border}`,
-                                        background: urgency.bg,
-                                        borderRadius: '12px', padding: '1rem',
-                                        marginBottom: '0.7rem'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div style={{
-                                                    width: '38px', height: '38px',
-                                                    background: 'linear-gradient(135deg, #0d6efd, #6366f1)',
-                                                    borderRadius: '50%',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: '0.75rem', fontWeight: 700, color: 'white'
-                                                }}>
-                                                    {req.avatar}
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontWeight: 700, fontSize: '0.87rem', color: '#0f172a' }}>{req.name}</div>
-                                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                                                        {lang === 'EN' ? `Age ${req.age}` : `${req.age} ans`} • {req.time}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div style={{
-                                                background: urgency.bg, border: `1px solid ${urgency.border}`,
-                                                color: urgency.text, borderRadius: '20px',
-                                                padding: '2px 8px', fontSize: '0.65rem', fontWeight: 700
-                                            }}>
-                                                {urgency.label}
-                                            </div>
-                                        </div>
-                                        <p style={{ margin: '0 0 0.8rem', fontSize: '0.8rem', color: '#475569', lineHeight: 1.5 }}>
-                                            {req.issue}
-                                        </p>
-                                        <div style={{ display: 'flex', gap: '0.6rem' }}>
-                                            <button style={{
-                                                flex: 1, padding: '0.5rem',
-                                                background: 'linear-gradient(135deg, #10b981, #34d399)',
-                                                color: 'white', border: 'none',
-                                                borderRadius: '8px', cursor: 'pointer',
-                                                fontSize: '0.78rem', fontWeight: 700,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                                                fontFamily: "'Inter', sans-serif",
-                                                boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
-                                            }}>
-                                                <FaCheckCircle size={12} />
-                                                {lang === 'EN' ? 'Accept' : 'Accepter'}
-                                            </button>
-                                            <button style={{
-                                                flex: 1, padding: '0.5rem',
-                                                background: 'white',
-                                                color: '#ef4444',
-                                                border: '1px solid #fecaca',
-                                                borderRadius: '8px', cursor: 'pointer',
-                                                fontSize: '0.78rem', fontWeight: 700,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                                                fontFamily: "'Inter', sans-serif"
-                                            }}>
-                                                <FaTimesCircle size={12} />
-                                                {lang === 'EN' ? 'Decline' : 'Refuser'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Right column */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-
-                            {/* Active chats */}
-                            <div style={{
-                                background: 'white', borderRadius: '16px',
-                                padding: '1.3rem', border: '1px solid #e2e8f0',
-                                boxShadow: '0 2px 10px rgba(0,0,0,0.04)'
-                            }}>
-                                <h3 style={{
-                                    fontSize: '0.92rem', fontWeight: 800, color: '#0f172a',
-                                    marginBottom: '1rem', marginTop: 0,
-                                    display: 'flex', alignItems: 'center', gap: '7px'
-                                }}>
-                                    <div style={{ width: '3px', height: '15px', background: 'linear-gradient(135deg, #10b981, #34d399)', borderRadius: '2px' }} />
-                                    {lang === 'EN' ? 'Active Patient Chats' : 'Discussions Patients Actives'}
-                                </h3>
-                                {activeChats.map((chat, i) => (
-                                    <div key={i} style={{
-                                        display: 'flex', alignItems: 'center', gap: '10px',
-                                        padding: '0.75rem',
-                                        background: '#f8fafc',
-                                        borderRadius: '11px', marginBottom: '0.6rem',
-                                        cursor: 'pointer', border: '1px solid #e2e8f0'
-                                    }}>
-                                        <div style={{
-                                            width: '38px', height: '38px',
-                                            background: `linear-gradient(135deg, ${chat.color}, ${chat.color}99)`,
-                                            borderRadius: '50%',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: '0.72rem', fontWeight: 700, color: 'white',
-                                            flexShrink: 0
-                                        }}>
-                                            {chat.avatar}
-                                        </div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{chat.name}</span>
-                                                <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{chat.time}</span>
-                                            </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {chat.lastMessage}
-                                            </div>
-                                        </div>
-                                        {chat.unread > 0 && (
-                                            <div style={{
-                                                background: '#ef4444', color: 'white',
-                                                borderRadius: '50%', width: '18px', height: '18px',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: '0.6rem', fontWeight: 700, flexShrink: 0
-                                            }}>
-                                                {chat.unread}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                                <button onClick={() => setActiveMenu('chats')} style={{
-                                    width: '100%', padding: '0.65rem',
-                                    background: 'linear-gradient(135deg, #10b981, #34d399)',
-                                    color: 'white', border: 'none',
-                                    borderRadius: '10px', cursor: 'pointer',
-                                    fontSize: '0.82rem', fontWeight: 700,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                                    fontFamily: "'Inter', sans-serif",
-                                    boxShadow: '0 4px 12px rgba(16,185,129,0.3)'
-                                }}>
-                                    <FaComments size={13} />
-                                    {lang === 'EN' ? 'View All Chats' : 'Voir Toutes les Discussions'}
-                                </button>
-                            </div>
-
-                            {/* Daily tip for doctor */}
-                            <div style={{
-                                background: 'linear-gradient(135deg, #0d6efd, #3b82f6)',
-                                borderRadius: '16px', padding: '1.3rem',
-                                boxShadow: '0 5px 18px rgba(13,110,253,0.3)'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.65rem' }}>
-                                    <div style={{
-                                        width: '26px', height: '26px',
-                                        background: 'rgba(255,255,255,0.15)',
-                                        borderRadius: '7px',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}>
-                                        <MdOutlineTipsAndUpdates color="white" size={16} />
-                                    </div>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                                        {lang === 'EN' ? 'Medical Reminder' : 'Rappel Médical'}
-                                    </span>
-                                </div>
-                                <p style={{ margin: 0, fontSize: '0.87rem', color: 'white', lineHeight: 1.7, fontWeight: 500 }}>
-                                    {lang === 'EN'
-                                        ? 'Malaria cases are rising in Douala this season. Remind patients to use treated mosquito nets and seek care early.'
-                                        : 'Les cas de paludisme augmentent à Douala cette saison. Rappeler aux patients d\'utiliser des moustiquaires traitées.'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                {/* Dashboard content */}
+                <div style={{ padding: '1.6rem 2rem', flex: 1 }}>
+                    {renderActiveContent()}
                 </div>
             </div>
         </div>
