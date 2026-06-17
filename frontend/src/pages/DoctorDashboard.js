@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { JitsiMeeting } from '@jitsi/react-sdk';
 import {
     FaUserMd, FaUser, FaBell, FaSignOutAlt,
     FaSearch, FaStethoscope, FaCheckCircle,
@@ -52,6 +53,7 @@ const DoctorDashboard = () => {
     const [teleChat, setTeleChat] = useState([]);
     const [teleInput, setTeleInput] = useState('');
     const [telePatient, setTelePatient] = useState(null);
+    const [teleAppointment, setTeleAppointment] = useState(null);
 
     // Postpone state
     const [postponeAppointmentId, setPostponeAppointmentId] = useState(null);
@@ -176,10 +178,9 @@ const DoctorDashboard = () => {
 
     const startTeleconsultation = (appointment) => {
         setTelePatient(appointment.patient_detail);
+        setTeleAppointment(appointment);
         setActiveMenu('teleconsultation');
-        setTeleChat([
-            { sender: 'system', text: lang === 'EN' ? 'Call initialized. Patient connected.' : 'Appel initialisé. Patient connecté.' }
-        ]);
+        loadPatientDetails(appointment.patient_detail);
     };
 
     const sendTeleMessage = (e) => {
@@ -591,119 +592,139 @@ const DoctorDashboard = () => {
                 );
             case 'teleconsultation':
                 return (
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', minHeight: '450px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr', gap: '20px', minHeight: '600px' }}>
                         {/* Video Feed */}
-                        <div style={{ background: '#1e293b', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px', position: 'relative', overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', zIndex: 5 }}>
-                                <span style={{ background: 'rgba(0,0,0,0.5)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }} />
-                                    {lang === 'EN' ? 'LIVE SESSION' : 'DIRECT TELECONSULTATION'}
+                        <div style={{ background: '#1e293b', borderRadius: '16px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', minHeight: '500px' }}>
+                            <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', zIndex: 5, background: 'rgba(15,23,42,0.8)' }}>
+                                <span style={{ color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite' }} />
+                                    {lang === 'EN' ? 'SECURE JITSI MEETING' : 'TÉLÉCONSULTATION SÉCURISÉE'}
                                 </span>
                                 {telePatient && (
-                                    <span style={{ background: 'rgba(0,0,0,0.5)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '0.72rem' }}>
+                                    <span style={{ color: '#cbd5e1', fontSize: '0.8rem', fontWeight: 600 }}>
                                         Patient: {telePatient.username}
                                     </span>
                                 )}
                             </div>
 
-                            {/* Camera views */}
-                            <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', position: 'relative', margin: '20px 0' }}>
-                                {isVideoMuted ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#94a3b8' }}>
-                                        <FaVideoSlash size={48} style={{ marginBottom: '10px' }} />
-                                        <span>{lang === 'EN' ? 'Camera is muted' : 'Caméra désactivée'}</span>
-                                    </div>
-                                ) : (
-                                    <div style={{ width: '100%', height: '240px', background: 'linear-gradient(135deg, #0f172a, #19233c)', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid #334155', position: 'relative', overflow: 'hidden' }}>
-                                        <FaUser size={64} color="#475569" style={{ marginBottom: '12px', opacity: 0.6 }} />
-                                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.02em', zIndex: 2 }}>
-                                            {lang === 'EN' ? 'SECURE VIDEO LINK - ACTIVE' : 'LIAISON VIDÉO SÉCURISÉE - ACTIVE'}
-                                        </span>
-                                        <span style={{ color: '#0ea5e9', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px', zIndex: 2 }}>
-                                            1080p • 60 FPS • Latency: 24ms
-                                        </span>
-                                        
-                                        {/* ECG animated overlay graph */}
-                                        <svg width="100%" height="45" viewBox="0 0 300 45" style={{ position: 'absolute', bottom: '10px', left: 0, right: 0, opacity: 0.5, pointerEvents: 'none' }}>
-                                            <path d="M0,22 L60,22 L70,8 L80,36 L90,22 L130,22 L140,4 L150,40 L160,22 L200,22 L210,8 L220,36 L230,22 L300,22" fill="none" stroke="#10b981" strokeWidth="2.5" strokeDasharray="600" strokeDashoffset="600" style={{ animation: 'ecg-draw 3s linear infinite' }} />
-                                        </svg>
-                                    </div>
+                            {/* Jitsi React Iframe */}
+                            <div style={{ flex: 1, position: 'relative' }}>
+                                {teleAppointment && (
+                                    <JitsiMeeting
+                                        domain="meet.jit.si"
+                                        roomName={`AnasHealthCare-Appt-${teleAppointment.id}`}
+                                        configOverwrite={{
+                                            startWithAudioMuted: false,
+                                            disableModeratorIndicator: true,
+                                            startScreenSharing: false,
+                                            enableEmailInStats: false
+                                        }}
+                                        interfaceConfigOverwrite={{
+                                            DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+                                        }}
+                                        userInfo={{
+                                            displayName: `Dr. ${user.username}`
+                                        }}
+                                        onApiReady={(externalApi) => {
+                                            // API is ready
+                                        }}
+                                        getIFrameRef={(iframeRef) => {
+                                            iframeRef.style.height = '100%';
+                                            iframeRef.style.width = '100%';
+                                            iframeRef.style.border = 'none';
+                                        }}
+                                    />
                                 )}
-
-                                {/* Self view */}
-                                <div style={{ position: 'absolute', bottom: '10px', right: '10px', width: '90px', height: '70px', background: '#334155', borderRadius: '8px', border: '1.5px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <span style={{ fontSize: '0.55rem', color: '#94a3b8' }}>{lang === 'EN' ? 'Doctor (You)' : 'Docteur (Vous)'}</span>
-                                </div>
                             </div>
 
-                            {/* Controls */}
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', zIndex: 5 }}>
-                                <button
-                                    onClick={() => setIsAudioMuted(!isAudioMuted)}
-                                    style={{
-                                        width: '44px', height: '44px', borderRadius: '50%', border: 'none', cursor: 'pointer',
-                                        background: isAudioMuted ? '#ef4444' : '#475569', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}
-                                >
-                                    {isAudioMuted ? <FaMicrophoneSlash size={18} /> : <FaMicrophone size={18} />}
-                                </button>
-                                <button
-                                    onClick={() => setIsVideoMuted(!isVideoMuted)}
-                                    style={{
-                                        width: '44px', height: '44px', borderRadius: '50%', border: 'none', cursor: 'pointer',
-                                        background: isVideoMuted ? '#ef4444' : '#475569', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}
-                                >
-                                    {isVideoMuted ? <FaVideoSlash size={18} /> : <FaVideo size={18} />}
-                                </button>
+                            <div style={{ padding: '10px 20px', background: 'rgba(15,23,42,0.8)', display: 'flex', justifyContent: 'center' }}>
                                 <button
                                     onClick={() => {
-                                        setTelePatient(null);
-                                        setActiveMenu('dashboard');
+                                        if (window.confirm("Avez-vous terminé la consultation ?")) {
+                                            handleStatusUpdate(teleAppointment.id, 'completed');
+                                            setTelePatient(null);
+                                            setTeleAppointment(null);
+                                            setActiveMenu('appointments');
+                                        }
                                     }}
                                     style={{
-                                        width: '44px', height: '44px', borderRadius: '50%', border: 'none', cursor: 'pointer',
-                                        background: '#ef4444', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                        padding: '10px 24px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                                        background: '#ef4444', color: 'white', fontWeight: 800, fontSize: '0.9rem',
+                                        display: 'flex', alignItems: 'center', gap: '8px'
                                     }}
                                 >
-                                    <FaPhoneSlash size={18} />
+                                    <FaPhoneSlash size={16} /> Clôturer la Consultation
                                 </button>
                             </div>
                         </div>
 
-                        {/* Consultation chat */}
+                        {/* Consultation File / Note taking */}
                         <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                            <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: 800, fontSize: '0.85rem' }}>
-                                💬 Consultation Chat
+                            <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                                <h4 style={{ margin: 0, color: '#1e293b', fontWeight: 800, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <FaFileMedical color="#8b5cf6" /> Dossier Médical Interactif
+                                </h4>
                             </div>
-                            <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '300px' }}>
-                                {teleChat.map((msg, i) => (
-                                    <div key={i} style={{
-                                        padding: '8px 12px',
-                                        borderRadius: '8px',
-                                        fontSize: '0.78rem',
-                                        maxWidth: '85%',
-                                        alignSelf: msg.sender === 'doctor' ? 'flex-end' : msg.sender === 'system' ? 'center' : 'flex-start',
-                                        background: msg.sender === 'doctor' ? '#ec4899' : msg.sender === 'system' ? '#f1f5f9' : '#e2e8f0',
-                                        color: msg.sender === 'doctor' ? 'white' : '#1e293b',
-                                        textAlign: msg.sender === 'system' ? 'center' : 'left'
-                                    }}>
-                                        {msg.text}
+                            
+                            <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' }}>
+                                {/* Patient Info */}
+                                {telePatient && (
+                                    <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px' }}>
+                                        <p style={{ margin: '0 0 4px', fontSize: '0.85rem' }}><strong>Patient:</strong> {telePatient.username} ({telePatient.email})</p>
+                                        <p style={{ margin: '0 0 4px', fontSize: '0.85rem' }}><strong>Symptômes:</strong> {teleAppointment?.symptoms || 'Non renseignés'}</p>
                                     </div>
-                                ))}
+                                )}
+
+                                {/* Note Form */}
+                                <form onSubmit={handleAddMedicalNote} style={{ border: '1px solid #ddd6fe', borderRadius: '12px', padding: '14px', background: '#f5f3ff' }}>
+                                    <h5 style={{ margin: '0 0 10px', color: '#6d28d9', fontSize: '0.88rem', fontWeight: 800 }}>
+                                        ✍️ Saisie en direct
+                                    </h5>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <textarea
+                                            required
+                                            placeholder="Notes cliniques de la séance..."
+                                            value={newNoteContent}
+                                            onChange={e => setNewNoteContent(e.target.value)}
+                                            style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', height: '100px', resize: 'none', fontFamily: 'inherit', fontSize: '0.85rem' }}
+                                        />
+                                        <textarea
+                                            placeholder="Ordonnance (médicaments et posologie)..."
+                                            value={newNotePrescription}
+                                            onChange={e => setNewNotePrescription(e.target.value)}
+                                            style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', height: '80px', resize: 'none', fontFamily: 'inherit', fontSize: '0.85rem' }}
+                                        />
+                                        <button type="submit" style={{ padding: '10px', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}>
+                                            <FaPlus /> Sauvegarder dans le dossier
+                                        </button>
+                                    </div>
+                                </form>
+
+                                {/* Notes History */}
+                                <div>
+                                    <h5 style={{ margin: '0 0 8px', color: '#334155', fontSize: '0.88rem', fontWeight: 800 }}>
+                                        Historique récent
+                                    </h5>
+                                    {notesLoading ? (
+                                        <FaSpinner className="spin" />
+                                    ) : patientNotes.length === 0 ? (
+                                        <span style={{ fontSize: '0.82rem', color: '#64748b' }}>Aucun historique trouvé.</span>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {patientNotes.slice(0, 2).map(note => (
+                                                <div key={note.id} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white' }}>
+                                                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '4px' }}>
+                                                        {new Date(note.created_at).toLocaleDateString()}
+                                                    </div>
+                                                    <p style={{ margin: '0', fontSize: '0.8rem', color: '#334155' }}>
+                                                        {note.content.substring(0, 50)}...
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <form onSubmit={sendTeleMessage} style={{ display: 'flex', borderTop: '1px solid #e2e8f0' }}>
-                                <input
-                                    type="text"
-                                    placeholder={lang === 'EN' ? "Type message..." : "Saisir un message..."}
-                                    value={teleInput}
-                                    onChange={e => setTeleInput(e.target.value)}
-                                    style={{ flex: 1, border: 'none', padding: '10px 14px', outline: 'none', fontSize: '0.8rem' }}
-                                />
-                                <button type="submit" style={{ padding: '10px 16px', background: '#ec4899', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>
-                                    Send
-                                </button>
-                            </form>
                         </div>
                     </div>
                 );

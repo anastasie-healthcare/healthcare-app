@@ -11,6 +11,7 @@ import {
     MdHealthAndSafety, MdPsychology,
     MdOutlineTipsAndUpdates
 } from 'react-icons/md';
+import { JitsiMeeting } from '@jitsi/react-sdk';
 
 import SOSModule from '../components/dashboard/SOSModule';
 import FirstAidModule from '../components/dashboard/FirstAidModule';
@@ -46,6 +47,10 @@ const UserDashboard = () => {
     const [bookingNotes, setBookingNotes] = useState('');
     const [bookingMessage, setBookingMessage] = useState(null);
     const [bookingLoading, setBookingLoading] = useState(false);
+
+    // Teleconsultation
+    const [activeTeleconsultation, setActiveTeleconsultation] = useState(null);
+
     const navigate = useNavigate();
 
     const fetchMedicalRecord = async () => {
@@ -393,9 +398,31 @@ const UserDashboard = () => {
             case 'womens_health':
                 return <WomensHealthModule lang={lang} />;
             case 'consultation':
+                if (activeTeleconsultation) {
+                    return (
+                        <div style={{ background: '#1e293b', borderRadius: '16px', overflow: 'hidden', height: '600px', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15,23,42,0.9)' }}>
+                                <span style={{ color: 'white', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite' }} />
+                                    {lang === 'EN' ? 'SECURE TELECONSULTATION' : 'TÉLÉCONSULTATION EN COURS'}
+                                </span>
+                                <button onClick={() => setActiveTeleconsultation(null)} style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
+                                    {lang === 'EN' ? 'Leave Call' : 'Quitter l\'appel'}
+                                </button>
+                            </div>
+                            <JitsiMeeting
+                                domain="meet.jit.si"
+                                roomName={`AnasHealthCare-Appt-${activeTeleconsultation.id}`}
+                                configOverwrite={{ startWithAudioMuted: false, disableModeratorIndicator: true, startScreenSharing: false, enableEmailInStats: false }}
+                                interfaceConfigOverwrite={{ DISABLE_JOIN_LEAVE_NOTIFICATIONS: true }}
+                                userInfo={{ displayName: user.username }}
+                                getIFrameRef={(iframeRef) => { iframeRef.style.height = '100%'; iframeRef.style.width = '100%'; iframeRef.style.border = 'none'; }}
+                            />
+                        </div>
+                    );
+                }
                 return (
                     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', alignItems: 'start', fontFamily: "'Inter', sans-serif" }}>
-                        
                         {/* Left Column: My Appointments List */}
                         <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                             <h3 style={{ margin: '0 0 16px', color: '#1e293b', fontWeight: 800, fontSize: '1.1rem' }}>
@@ -449,9 +476,19 @@ const UserDashboard = () => {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <span style={{ background: badgeBg, color: badgeColor, border: `1px solid ${badgeColor}40`, padding: '4px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'capitalize' }}>
-                                                    {appt.status_display}
-                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <span style={{ background: badgeBg, color: badgeColor, border: `1px solid ${badgeColor}40`, padding: '4px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'capitalize' }}>
+                                                        {appt.status_display}
+                                                    </span>
+                                                    {appt.status === 'confirmed' && (
+                                                        <button
+                                                            onClick={() => setActiveTeleconsultation(appt)}
+                                                            style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 4px rgba(59,130,246,0.3)' }}
+                                                        >
+                                                            {lang === 'EN' ? 'Join Video Call' : 'Rejoindre Vidéo'}
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
