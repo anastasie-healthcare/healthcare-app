@@ -17,7 +17,7 @@ import {
 import { 
     getAppointments, updateAppointment, getMedicalNotes, 
     createMedicalNote, updateDoctorProfile, getEstablishments,
-    getMyDoctorProfile
+    getMyDoctorProfile, aiTriage
 } from '../services/api';
 
 const DoctorDashboard = () => {
@@ -38,6 +38,10 @@ const DoctorDashboard = () => {
     const [newNoteContent, setNewNoteContent] = useState('');
     const [newNotePrescription, setNewNotePrescription] = useState('');
     const [notesLoading, setNotesLoading] = useState(false);
+    
+    // AI Assistant state
+    const [aiHypotheses, setAiHypotheses] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
     
     // Doctor profile settings state
     const [specialty, setSpecialty] = useState('Médecine Générale');
@@ -128,6 +132,7 @@ const DoctorDashboard = () => {
         setNotesLoading(true);
         setNewNoteContent('');
         setNewNotePrescription('');
+        setAiHypotheses(null);
         try {
             const res = await getMedicalNotes(patient.id);
             setPatientNotes(res.data);
@@ -135,6 +140,25 @@ const DoctorDashboard = () => {
             console.error('Error fetching patient notes:', err);
         } finally {
             setNotesLoading(false);
+        }
+    };
+
+    const generateAIReport = async () => {
+        if (!selectedPatient) return;
+        setAiLoading(true);
+        try {
+            // Find patient's latest symptoms from appointments
+            const patientAppts = appointments.filter(a => a.patient_detail.id === selectedPatient.id && a.symptoms);
+            const latestSymptoms = patientAppts.length > 0 ? patientAppts[0].symptoms : '';
+            
+            const textToAnalyze = `${latestSymptoms} ${selectedPatient.medical_history || ''} ${selectedPatient.allergies || ''}`;
+            
+            const res = await aiTriage({ free_text: textToAnalyze, selected_symptoms: [] });
+            setAiHypotheses(res.data.hypotheses || []);
+        } catch (err) {
+            console.error('Error generating AI Report:', err);
+        } finally {
+            setAiLoading(false);
         }
     };
 
@@ -573,17 +597,47 @@ const DoctorDashboard = () => {
 
                                     {/* AI compatible hypothesis */}
                                     <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '16px', borderRadius: '12px' }}>
-                                        <h4 style={{ margin: '0 0 8px', fontSize: '0.88rem', color: '#b45309', fontWeight: 800 }}>
-                                            💡 {lang === 'EN' ? 'Compatible Diagnostic Hypotheses' : 'Hypothèses de Corrélation Compatibles'}
-                                        </h4>
-                                        <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <li style={{ fontSize: '0.82rem', color: '#78350f', lineHeight: 1.5 }}>
-                                                <strong>Paludisme Suspecté (Confiance: 75%) :</strong> Le patient présente de la fièvre et des maux de tête cycliques. Rechercher frissons ou fatigue généralisée.
-                                            </li>
-                                            <li style={{ fontSize: '0.82rem', color: '#78350f', lineHeight: 1.5 }}>
-                                                <strong>Gastro-entérite (Confiance: 40%) :</strong> En cas de douleurs abdominales associées à des nausées.
-                                            </li>
-                                        </ul>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <h4 style={{ margin: 0, fontSize: '0.88rem', color: '#b45309', fontWeight: 800 }}>
+                                                💡 {lang === 'EN' ? 'Compatible Diagnostic Hypotheses' : 'Hypothèses de Corrélation Compatibles'}
+                                            </h4>
+                                            <button 
+                                                onClick={generateAIReport}
+                                                disabled={aiLoading}
+                                                style={{ padding: '6px 12px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: aiLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                {aiLoading ? <FaSpinner className="spin" /> : <MdPsychology size={16} />}
+                                                {lang === 'EN' ? 'Run AI Analysis' : 'Lancer l\'Analyse IA'}
+                                            </button>
+                                        </div>
+                                        
+                                        {!aiHypotheses && !aiLoading && (
+                                            <div style={{ color: '#92400e', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                                {lang === 'EN' ? 'Click the button above to analyze the patient\'s latest symptoms and medical history.' : 'Cliquez sur le bouton ci-dessus pour analyser les symptômes récents et l\'historique du patient.'}
+                                            </div>
+                                        )}
+                                        
+                                        {aiLoading && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontSize: '0.8rem' }}>
+                                                <FaSpinner className="spin" /> {lang === 'EN' ? 'Analyzing...' : 'Analyse en cours...'}
+                                            </div>
+                                        )}
+                                        
+                                        {aiHypotheses && aiHypotheses.length === 0 && (
+                                            <div style={{ color: '#92400e', fontSize: '0.8rem' }}>
+                                                {lang === 'EN' ? 'No specific correlations found.' : 'Aucune corrélation spécifique trouvée.'}
+                                            </div>
+                                        )}
+                                        
+                                        {aiHypotheses && aiHypotheses.length > 0 && (
+                                            <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                {aiHypotheses.map((hyp, index) => (
+                                                    <li key={index} style={{ fontSize: '0.82rem', color: '#78350f', lineHeight: 1.5 }}>
+                                                        <strong>{lang === 'EN' ? hyp.condition_en : hyp.condition_fr} (Confiance: {hyp.confidence}) :</strong> {lang === 'EN' ? hyp.explanation_en : hyp.explanation_fr}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                 </div>
                             )}
