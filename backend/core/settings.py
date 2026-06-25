@@ -75,16 +75,19 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+import dj_database_url
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "healthcaredb",
-        "USER": "postgres",
-        "PASSWORD": "postgres123",
-        "HOST": "localhost",
-        "PORT": "5433",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'healthcaredb',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres123',
+        'HOST': 'localhost',
+        'PORT': '5433',
     }
 }
+
 
 
 # Password validation
@@ -161,3 +164,13 @@ MIDDLEWARE = [
 # Anthropic API Key
 import os
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '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')
+
+# Google Auth / COOP Setting
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+
+# Media Files (Uploads)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
