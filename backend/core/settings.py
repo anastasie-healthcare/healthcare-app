@@ -163,7 +163,8 @@ MIDDLEWARE = [
 
 # Anthropic API Key
 import os
-ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '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')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 
 # Google Auth / COOP Setting
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'

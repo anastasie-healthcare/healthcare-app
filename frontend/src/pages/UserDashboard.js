@@ -22,6 +22,7 @@ import HealthAcademyModule from '../components/dashboard/HealthAcademyModule';
 import OnboardingWizard from '../components/dashboard/OnboardingWizard';
 import WomensHealthModule from '../components/dashboard/WomensHealthModule';
 import { getMedicalRecord, getDoctors, getAppointments, createAppointment } from '../services/api';
+import DailyRemindersModule from '../components/dashboard/DailyRemindersModule';
 
 const UserDashboard = () => {
     const [user, setUser] = useState(null);
@@ -680,6 +681,7 @@ const UserDashboard = () => {
             default:
                 return (
                     <>
+                    
                         {/* Hero banner */}
                         <div style={{
                             background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #065f46 100%)',

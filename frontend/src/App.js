@@ -6,6 +6,7 @@ import Register from './pages/register';
 import UserDashboard from './pages/UserDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import PublicEmergency from './pages/PublicEmergency';
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
@@ -22,6 +23,7 @@ function App() {
           <Route path="/user/dashboard" element={<UserDashboard />} />
           <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/emergency" element={<PublicEmergency />} />
         </Routes>
       </Router>
     </GoogleOAuthProvider>

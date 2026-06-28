@@ -79,7 +79,18 @@ const Home = () => {
             </a>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <Link to="/emergency" style={{
+    display: 'flex', alignItems: 'center', gap: '5px',
+    background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+    color: 'white', borderRadius: '40px',
+    padding: '0.3rem 0.8rem', fontWeight: 700,
+    textDecoration: 'none', fontSize: '0.78rem',
+    boxShadow: '0 3px 8px rgba(220,38,38,0.4)',
+    whiteSpace: 'nowrap', flexShrink: 0
+}}>
+    🚨 {lang === 'EN' ? 'Emergency' : 'Urgence'}
+</Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button onClick={() => setLang(lang === 'EN' ? 'FR' : 'EN')} style={{ background: 'transparent', border: '1.5px solid #0d6efd', color: '#0d6efd', borderRadius: '40px', padding: '0.3rem 0.9rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
             {lang === 'EN' ? 'FR' : 'EN'}
           </button>
