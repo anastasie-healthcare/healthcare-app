@@ -33,12 +33,12 @@ const UserDashboard = () => {
     const [medicalRecord, setMedicalRecord] = useState(null);
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [loadingRecord, setLoadingRecord] = useState(true);
-    
+
     // Consultation states
     const [doctors, setDoctors] = useState([]);
     const [appointments, setAppointments] = useState([]);
     const [loadingConsult, setLoadingConsult] = useState(false);
-    
+
     // Booking Form
     const [showBookingForm, setShowBookingForm] = useState(false);
     const [selectedDoctorId, setSelectedDoctorId] = useState('');
@@ -126,7 +126,7 @@ const UserDashboard = () => {
                 notes: bookingNotes
             });
             setBookingMessage({ type: 'success', text: lang === 'EN' ? 'Appointment request submitted successfully!' : 'Demande de rendez-vous enregistrée !' });
-            
+
             // Reset form
             setSelectedDoctorId('');
             setBookingDate('');
@@ -134,7 +134,7 @@ const UserDashboard = () => {
             setBookingSymptoms('');
             setBookingNotes('');
             setShowBookingForm(false);
-            
+
             // Reload list
             fetchConsultationData();
         } catch (err) {
@@ -165,11 +165,11 @@ const UserDashboard = () => {
 
         // Conditional inclusion for Women's Health
         if (medicalRecord?.sex === 'female') {
-            items.push({ 
-                id: 'womens_health', 
-                icon: <FaVenus size={18} />, 
-                label: lang === 'EN' ? "Women's Health" : 'Santé Féminine', 
-                color: '#f43f5e' 
+            items.push({
+                id: 'womens_health',
+                icon: <FaVenus size={18} />,
+                label: lang === 'EN' ? "Women's Health" : 'Santé Féminine',
+                color: '#f43f5e'
             });
         }
 
@@ -184,7 +184,7 @@ const UserDashboard = () => {
 
     const getQuickStats = () => {
         const stats = [];
-        
+
         // 1. Emergency card is always here
         stats.push({
             icon: <FaAmbulance size={26} />,
@@ -208,8 +208,8 @@ const UserDashboard = () => {
                 bg: 'linear-gradient(135deg, #0d9488, #0f766e)',
                 label: lang === 'EN' ? 'Body Mass Index (BMI)' : 'Indice de Masse Corporelle (IMC)',
                 value: bmiVal,
-                desc: lang === 'EN' 
-                    ? `Height: ${medicalRecord.height}cm | Weight: ${medicalRecord.weight}kg` 
+                desc: lang === 'EN'
+                    ? `Height: ${medicalRecord.height}cm | Weight: ${medicalRecord.weight}kg`
                     : `Taille: ${medicalRecord.height}cm | Poids: ${medicalRecord.weight}kg`,
                 shadow: 'rgba(13,148,136,0.3)',
                 id: 'medical_record'
@@ -223,8 +223,8 @@ const UserDashboard = () => {
                 bg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                 label: lang === 'EN' ? 'Average Sleep' : 'Sommeil moyen',
                 value: `${medicalRecord.sleep_hours}h`,
-                desc: lang === 'EN' 
-                    ? `Quality: ${medicalRecord.sleep_quality || 'Good'}` 
+                desc: lang === 'EN'
+                    ? `Quality: ${medicalRecord.sleep_quality || 'Good'}`
                     : `Qualité : ${medicalRecord.sleep_quality === 'poor' ? 'Mauvais' : medicalRecord.sleep_quality === 'average' ? 'Moyen' : 'Réparateur'}`,
                 shadow: 'rgba(59,130,246,0.3)',
                 id: 'medical_record'
@@ -238,7 +238,7 @@ const UserDashboard = () => {
                 bg: 'linear-gradient(135deg, #ec4899, #be185d)',
                 label: lang === 'EN' ? 'Chronic Care' : 'Suivi Chronique',
                 value: lang === 'EN' ? 'Active' : 'Actif',
-                desc: medicalRecord?.chronic_illnesses 
+                desc: medicalRecord?.chronic_illnesses
                     ? `${medicalRecord.chronic_illnesses.substring(0, 25)}${medicalRecord.chronic_illnesses.length > 25 ? '...' : ''}`
                     : (lang === 'EN' ? 'Monitor conditions' : 'Suivi de pathologie'),
                 shadow: 'rgba(236,72,153,0.3)',
@@ -253,7 +253,7 @@ const UserDashboard = () => {
                 icon: <FaDumbbell size={26} />,
                 bg: 'linear-gradient(135deg, #f59e0b, #d97706)',
                 label: lang === 'EN' ? 'Physical Activity' : 'Activité Physique',
-                value: medicalRecord?.physical_activity 
+                value: medicalRecord?.physical_activity
                     ? (medicalRecord.physical_activity === 'none' ? 'None' : medicalRecord.physical_activity === 'occasional' ? 'Occasional' : medicalRecord.physical_activity === 'regular' ? 'Regular' : 'Intensive')
                     : 'Active',
                 desc: lang === 'EN' ? `Sports frequency: ${freq || 'N/A'}` : `Fréquence sport : ${freq || 'N/A'}`,
@@ -382,10 +382,10 @@ const UserDashboard = () => {
         switch (activeMenu) {
             case 'emergency':
                 return (
-                    <FirstAidModule 
-                        lang={lang} 
-                        initialEmergency={selectedEmergencyId} 
-                        clearInitialEmergency={() => setSelectedEmergencyId(null)} 
+                    <FirstAidModule
+                        lang={lang}
+                        initialEmergency={selectedEmergencyId}
+                        clearInitialEmergency={() => setSelectedEmergencyId(null)}
                     />
                 );
             case 'drugs':
@@ -429,7 +429,7 @@ const UserDashboard = () => {
                             <h3 style={{ margin: '0 0 16px', color: '#1e293b', fontWeight: 800, fontSize: '1.1rem' }}>
                                 📅 {lang === 'EN' ? 'My Consultations & Bookings' : 'Mes Rendez-vous & Consultations'}
                             </h3>
-                            
+
                             {loadingConsult ? (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '20px', color: '#64748b' }}>
                                     <FaSpinner className="spin" style={{ animation: 'spin 1s linear infinite' }} />
@@ -444,7 +444,7 @@ const UserDashboard = () => {
                                     {appointments.map((appt) => {
                                         const docName = appt.doctor_detail ? appt.doctor_detail.username : 'Doctor';
                                         const spec = appt.doctor_profile ? appt.doctor_profile.specialty : 'General Medicine';
-                                        
+
                                         // Colors based on status
                                         let badgeBg = '#fffbeb';
                                         let badgeColor = '#d97706';
@@ -526,7 +526,7 @@ const UserDashboard = () => {
                                             ? 'Connect with our network of verified medical professionals. Book a secure teleconsultation or physical appointment.'
                                             : 'Entrez en relation avec nos médecins vérifiés. Planifiez une consultation physique ou une téléconsultation.'}
                                     </p>
-                                    
+
                                     {/* List of Doctors */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
                                         {doctors.length === 0 ? (
@@ -563,7 +563,7 @@ const UserDashboard = () => {
                                 </div>
                             ) : (
                                 <form onSubmit={handleBookAppointmentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    
+
                                     {/* Select Doctor */}
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
@@ -681,7 +681,7 @@ const UserDashboard = () => {
             default:
                 return (
                     <>
-                    
+                        <DailyRemindersModule lang={lang} />
                         {/* Hero banner */}
                         <div style={{
                             background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #065f46 100%)',
@@ -798,7 +798,7 @@ const UserDashboard = () => {
                                             <div style={{
                                                 width: '36px', height: '36px', background: 'white',
                                                 borderRadius: '9px',
-                                                display: 'flex', alignItems: 'center', justify: 'center',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 boxShadow: '0 1px 6px rgba(0,0,0,0.07)'
                                             }}>
                                                 <span style={{ color: action.color }}>{action.icon}</span>
@@ -948,11 +948,11 @@ const UserDashboard = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'Inter', sans-serif", background: '#f8fafc' }}>
             {showOnboarding && (
-                <OnboardingWizard 
-                    lang={lang} 
+                <OnboardingWizard
+                    lang={lang}
                     onComplete={() => {
                         fetchMedicalRecord();
-                    }} 
+                    }}
                 />
             )}
 
@@ -1166,12 +1166,12 @@ const UserDashboard = () => {
                 </div>
 
                 {/* SOS Floating Action Widget */}
-                <SOSModule 
-                    lang={lang} 
-                    setActiveMenu={setActiveMenu} 
+                <SOSModule
+                    lang={lang}
+                    setActiveMenu={setActiveMenu}
                     selectEmergency={(id) => {
                       setSelectedEmergencyId(id);
-                    }} 
+                    }}
                 />
 
             </div>
