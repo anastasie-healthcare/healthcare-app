@@ -253,6 +253,7 @@ def doctors_list_update(request):
             profile, created = DoctorProfile.objects.get_or_create(user=request.user, defaults={
                 "specialty": "Médecine Générale",
                 "license_number": "PENDING-000",
+                "verification_status": "en_attente",
             })
             serializer = DoctorProfileSerializer(profile)
             return Response(serializer.data)
@@ -268,6 +269,7 @@ def doctors_list_update(request):
     profile, created = DoctorProfile.objects.get_or_create(user=request.user, defaults={
         "specialty": "Médecine Générale",
         "license_number": "PENDING-000",
+        "verification_status": "en_attente",
     })
 
     serializer = DoctorProfileSerializer(profile, data=request.data, partial=True)
@@ -665,3 +667,80 @@ def cycle_logs_list_create(request):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def womens_health_profile_view(request):
+    try:
+        profile, created = WomensHealthProfile.objects.get_or_create(user=request.user)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+    if request.method == 'GET':
+        return Response({
+            'is_enabled': profile.is_enabled,
+            'last_period_date': profile.last_period_date,
+            'cycle_length': profile.cycle_length,
+            'period_duration': profile.period_duration,
+        })
+
+    elif request.method == 'POST':
+        profile.last_period_date = request.data.get('last_period_date', profile.last_period_date)
+        profile.cycle_length = int(request.data.get('cycle_length', profile.cycle_length))
+        profile.period_duration = int(request.data.get('period_duration', profile.period_duration))
+        profile.is_enabled = request.data.get('is_enabled', profile.is_enabled)
+        profile.save()
+        return Response({
+            'is_enabled': profile.is_enabled,
+            'last_period_date': profile.last_period_date,
+            'cycle_length': profile.cycle_length,
+            'period_duration': profile.period_duration,
+        })
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def cycle_logs_list_create(request):
+    if request.method == 'GET':
+        logs = CycleLog.objects.filter(user=request.user).order_by('-date')
+        data = []
+        for log in logs:
+            data.append({
+                'id': log.id,
+                'date': str(log.date),
+                'pain_level': log.pain_level,
+                'fatigue': log.fatigue,
+                'mood': log.mood,
+                'flow': log.flow,
+                'symptoms': log.symptoms,
+                'notes': log.notes,
+            })
+        return Response(data)
+
+    elif request.method == 'POST':
+        try:
+            date = request.data.get('date')
+            # Update existing log for that date or create new one
+            log, created = CycleLog.objects.get_or_create(
+                user=request.user,
+                date=date
+            )
+            log.pain_level = request.data.get('pain_level', 'none')
+            log.fatigue = request.data.get('fatigue', 'none')
+            log.mood = request.data.get('mood', 'calm')
+            log.flow = request.data.get('flow', 'none')
+            log.symptoms = request.data.get('symptoms', '[]')
+            log.notes = request.data.get('notes', '')
+            log.save()
+            return Response({
+                'id': log.id,
+                'date': str(log.date),
+                'pain_level': log.pain_level,
+                'fatigue': log.fatigue,
+                'mood': log.mood,
+                'flow': log.flow,
+                'symptoms': log.symptoms,
+                'notes': log.notes,
+            }, status=201)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)

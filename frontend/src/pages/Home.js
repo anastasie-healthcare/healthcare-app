@@ -106,7 +106,7 @@ const Home = () => {
       {/* ========== HERO ========== */}
       <section id="home" style={{ marginTop: '60px', minHeight: '88vh', display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
         <AnimatePresence mode="wait">
-          <motion.div
+          <motion.di
             key={currentSlide}
             initial={{ opacity: 0, scale: 1.04 }}
             animate={{ opacity: 1, scale: 1 }}
