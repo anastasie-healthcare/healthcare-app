@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaHeartbeat } from 'react-icons/fa';
+import { FaArrowLeft, FaPhoneAlt } from 'react-icons/fa';
 import { MdLocalHospital } from 'react-icons/md';
 import FirstAidModule from '../components/dashboard/FirstAidModule';
 
@@ -48,7 +48,7 @@ const PublicEmergency = () => {
                         padding: '0.5rem 1rem', borderRadius: '40px',
                         fontWeight: 800, fontSize: '0.82rem', textDecoration: 'none'
                     }}>
-                        <FaHeartbeat size={13} />
+                        <FaPhoneAlt size={13} />
                         {lang === 'EN' ? 'Call 112' : 'Appeler le 112'}
                     </a>
                     <button
