@@ -5,11 +5,11 @@ import {
   FaBrain, FaHeartbeat, FaFire, FaTint, FaBone,
   FaSkullCrossbones, FaBolt, FaCar, FaChevronLeft,
   FaPhoneAlt, FaClock, FaBaby, FaFemale,
-  FaThermometerHalf, FaWater, FaBug, FaVirus,
-  FaRunning, FaExclamationTriangle, FaShieldAlt
+  FaThermometerHalf, FaWater, FaBug,
+  FaExclamationTriangle, FaShieldAlt
 } from 'react-icons/fa';
 import { MdSearch, MdWarning, MdLocalHospital } from 'react-icons/md';
-import { GiSnake, GiSpiderWeb, GiScorpion } from 'react-icons/gi';
+import { GiSnake, GiScorpion } from 'react-icons/gi';
 
 const EMERGENCY_DATA = {
   stroke: {
@@ -270,12 +270,36 @@ const EMERGENCY_DATA = {
         'PROTÉGER : Feux de détresse, triangle de signalisation, gilets pour éviter un sur-accident.',
         'ALERTER : Appelez le 112 — donnez le lieu précis, la route et le nombre de blessés.',
         'SECOURIR : Vérifiez tous les blessés sans les déplacer.',
-        'PREMIERS SECOURS : Stoppez les saignements, couvrez les victimes, parlez aux conscients pour les rassurer.'
+        'PREMIERS SECOURS : Stoppez les saignements, couvrez les victimes, parlez aux conscients.'
       ]
     },
     avoid: {
       EN: ['Do NOT move a victim unless there is immediate fire or explosion risk.', 'Do NOT remove a motorcyclist\'s helmet — risk of spinal paralysis.'],
       FR: ['Ne déplacez pas une victime sauf danger de mort imminent (incendie, explosion).', 'Ne retirez jamais le casque d\'un motard blessé — risque de paralysie vertébrale.']
+    }
+  },
+  malaria: {
+    id: 'malaria', icon: <FaBug size={22} />, color: '#ea580c', bg: '#fff7ed',
+    gravity: { EN: 'HIGH', FR: 'ÉLEVÉ' },
+    title: { EN: 'Malaria Crisis', FR: 'Crise de Paludisme' },
+    desc: { EN: 'Severe malaria attack with high fever, chills and possible convulsions.', FR: 'Crise de paludisme sévère avec forte fièvre, frissons et possibles convulsions.' },
+    steps: {
+      EN: [
+        'Lay the victim down in a cool well-ventilated area. Loosen tight clothing immediately.',
+        'For high fever: apply cool damp cloth to forehead, neck and armpits. Give paracetamol if conscious.',
+        'If convulsions occur: clear the area, protect the head, place in Recovery Position when shaking stops.',
+        'Transport urgently to nearest health center — only a blood test confirms malaria and treatment requires prescription antimalarials.'
+      ],
+      FR: [
+        'Allongez la victime dans un endroit frais et bien ventilé. Desserrez les vêtements serrés immédiatement.',
+        'En cas de forte fièvre : appliquez un linge humide sur le front, le cou et les aisselles. Donnez du paracétamol si consciente.',
+        'En cas de convulsions : dégagez la zone, protégez la tête, mettez en PLS quand les secousses s\'arrêtent.',
+        'Transportez d\'urgence au centre de santé — seul un test sanguin confirme le paludisme et le traitement nécessite des antipaludéens sur ordonnance.'
+      ]
+    },
+    avoid: {
+      EN: ['Do NOT self-medicate with antimalarials without a confirmed blood test.', 'Do NOT give aspirin to children with fever — risk of serious complications.', 'Do NOT ignore symptoms — untreated severe malaria can be fatal within 24 hours.'],
+      FR: ['Ne vous automédication pas avec des antipaludéens sans test sanguin confirmé.', 'Ne donnez pas d\'aspirine aux enfants fiévreux — risque de complications graves.', 'N\'ignorez pas les symptômes — le paludisme grave non traité peut être fatal en 24 heures.']
     }
   },
   snakebite_viper: {
@@ -481,7 +505,7 @@ const FirstAidModule = ({ lang, initialEmergency, clearInitialEmergency }) => {
                   {lang === 'EN' ? 'Emergency First Aid Guide' : 'Guide de Premiers Secours'}
                 </h2>
                 <p style={{ margin: 0, color: 'rgba(255,255,255,0.75)', fontSize: '0.8rem' }}>
-                  {lang === 'EN' ? '18 emergency protocols — available offline' : '18 protocoles d\'urgence — disponibles hors ligne'}
+                  {lang === 'EN' ? '19 emergency protocols — available offline' : '19 protocoles d\'urgence — disponibles hors ligne'}
                 </p>
               </div>
               <a href="tel:112" style={{ display: 'flex', alignItems: 'center', gap: '7px', background: 'white', color: '#ef4444', padding: '10px 18px', borderRadius: '10px', textDecoration: 'none', fontWeight: 800, fontSize: '0.86rem', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
@@ -620,7 +644,7 @@ const FirstAidModule = ({ lang, initialEmergency, clearInitialEmergency }) => {
                       <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontWeight: 800, fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {idx + 1}
                       </div>
-                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#1e293b', lineHeight: 1.65, fontWeight: 500 }}>{step}</p>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#0f172a', lineHeight: 1.65, fontWeight: 500 }}>{step}</p>
                     </div>
                   ))}
                 </div>
@@ -639,7 +663,7 @@ const FirstAidModule = ({ lang, initialEmergency, clearInitialEmergency }) => {
                     {selected.avoid[lang].map((item, idx) => (
                       <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', background: '#fff5f5', padding: '9px 11px', borderRadius: '8px', border: '1px solid #fecdd3' }}>
                         <span style={{ color: '#ef4444', fontWeight: 900, fontSize: '0.95rem', lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>×</span>
-                        <p style={{ margin: 0, fontSize: '0.79rem', color: '#1e293b', lineHeight: 1.6, fontWeight: 500 }}>{item}</p>
+                        <p style={{ margin: 0, fontSize: '0.79rem', color: '#0f172a', lineHeight: 1.6, fontWeight: 500 }}>{item}</p>
                       </div>
                     ))}
                   </div>
