@@ -19,7 +19,7 @@ import {
 
 const AdminDashboard = () => {
     const [user, setUser] = useState(null);
-    const [lang, setLang] = useState('FR');
+    const [lang, setLang] = useState('EN');
     const [activeMenu, setActiveMenu] = useState('dashboard');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -456,7 +456,26 @@ const AdminDashboard = () => {
                                     { icon: <FaHospital size={18} />, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', label: lang === 'EN' ? 'Establishments' : 'Établissements', value: analytics.metrics.establishments },
                                     { icon: <FaFlag size={18} />, color: '#ef4444', bg: '#fef2f2', border: '#fecaca', label: lang === 'EN' ? 'Pending Reports' : 'Signalements', value: analytics.metrics.pending_reports },
                                 ].map((stat, i) => (
-                                    <div key={i} style={{ background: stat.bg, border: '1px solid ' + stat.border, borderRadius: '12px', padding: '16px 18px' }}>
+                                    <div key={i}
+    onClick={() => setActiveMenu('appointments')}
+    onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-5px)';
+        e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
+        e.currentTarget.style.borderColor = stat.color;
+    }}
+    onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.borderColor = stat.border;
+    }}
+    style={{
+        background: stat.bg,
+        border: '1px solid ' + stat.border,
+        borderRadius: '12px',
+        padding: '16px 18px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease'
+    }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                                             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                                                 <span style={{ color: stat.color }}>{stat.icon}</span>
@@ -501,15 +520,17 @@ const AdminDashboard = () => {
             <div style={{ width: '240px', flexShrink: 0, background: 'white', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 100, boxShadow: '2px 0 8px rgba(0,0,0,0.04)' }}>
 
                 {/* Logo */}
-                <div style={{ padding: '18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <MdLocalHospital size={20} color="white" />
-                    </div>
-                    <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AnasHealthcare</div>
-                        <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 500 }}>{lang === 'EN' ? 'Admin Panel' : 'Panneau Admin'}</div>
-                    </div>
-                </div>
+<div style={{ padding: '20px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <img src="/logo.svg" alt="AnasHealthcare" style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+    <div>
+        <div style={{ fontWeight: 800, fontSize: '0.88rem', background: 'linear-gradient(135deg, #6366f1, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            AnasHealthcare
+        </div>
+        <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 500 }}>
+            {lang === 'EN' ? 'Patient Portal' : 'Portail Patient'}
+        </div>
+    </div>
+</div>
 
                 {/* Admin info */}
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>

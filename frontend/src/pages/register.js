@@ -6,7 +6,6 @@ import {
     FaArrowRight, FaUser, FaEnvelope, FaCheckCircle,
     FaAmbulance, FaPills, FaShieldAlt
 } from 'react-icons/fa';
-import { MdLocalHospital } from 'react-icons/md';
 import { GoogleLogin } from '@react-oauth/google';
 import { registerUser, googleLogin } from '../services/api';
 
@@ -183,40 +182,18 @@ const Register = () => {
                     alignItems: 'center', justifyContent: 'space-between',
                     padding: '2.5rem 2rem',
                 }}>
-                    {/* TOP — Logo */}
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        style={{ textAlign: 'center', width: '100%' }}>
-                        <div style={{
-                            width: '64px', height: '64px',
-                            background: 'linear-gradient(135deg, #0d6efd, #198754)',
-                            borderRadius: '18px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            margin: '0 auto 0.8rem',
-                            boxShadow: '0 12px 30px rgba(13,110,253,0.35)'
-                        }}>
-                            <MdLocalHospital size={32} color="white" />
-                        </div>
-                        <h2 style={{
-                            fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.3rem',
-                            background: 'linear-gradient(135deg, #60a5fa, #34d399)',
-                            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-                        }}>
-                            AnasHealthcare
-                        </h2>
-                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', margin: 0 }}>
-                            {lang === 'EN'
-                                ? 'Your Trusted Digital Health Companion'
-                                : 'Votre Compagnon Santé Numérique de Confiance'}
-                        </p>
-                        <div style={{
-                            width: '40px', height: '3px',
-                            background: 'linear-gradient(90deg, #0d6efd, #198754)',
-                            borderRadius: '3px', margin: '1rem auto 0'
-                        }} />
-                    </motion.div>
+                    {/* Logo */}
+<div style={{ padding: '20px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <img src="/logo.svg" alt="AnasHealthcare" style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+    <div>
+        <div style={{ fontWeight: 800, fontSize: '0.88rem', background: 'linear-gradient(135deg, #6366f1, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            AnasHealthcare
+        </div>
+        <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 500 }}>
+            {lang === 'EN' ? 'Patient Portal' : 'Portail Patient'}
+        </div>
+    </div>
+</div>
 
                     {/* MIDDLE — Feature cards */}
                     <motion.div

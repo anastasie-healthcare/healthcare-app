@@ -402,7 +402,7 @@ const UserDashboard = () => {
                         <DailyRemindersModule lang={lang} />
 
                         {/* Welcome banner */}
-                        <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #065f46 100%)', borderRadius: '16px', padding: '28px 32px', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ background: 'linear-gradient(135deg, #2619dd 0%, #3631c5 50%, #435586 100%)', borderRadius: '16px', padding: '28px 32px', position: 'relative', overflow: 'hidden' }}>
                             <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                                 <div>
                                     <h2 style={{ color: 'white', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 8px' }}>
@@ -562,16 +562,17 @@ const UserDashboard = () => {
             <div style={{ width: '240px', flexShrink: 0, background: 'white', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 100, boxShadow: '2px 0 8px rgba(0,0,0,0.04)' }}>
 
                 {/* Logo */}
-                <div style={{ padding: '20px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #6366f1, #10b981)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 8px rgba(99,102,241,0.3)' }}>
-                        <MdLocalHospital size={20} color="white" />
-                    </div>
-                    <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', background: 'linear-gradient(135deg, #6366f1, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AnasHealthcare</div>
-                        <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 500 }}>{lang === 'EN' ? 'Patient Portal' : 'Portail Patient'}</div>
-                    </div>
-                </div>
-
+<div style={{ padding: '20px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <img src="/logo.svg" alt="AnasHealthcare" style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+    <div>
+        <div style={{ fontWeight: 800, fontSize: '0.88rem', background: 'linear-gradient(135deg, #6366f1, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            AnasHealthcare
+        </div>
+        <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 500 }}>
+            {lang === 'EN' ? 'Patient Portal' : 'Portail Patient'}
+        </div>
+    </div>
+</div>
                 {/* User info */}
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ width: '38px', height: '38px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

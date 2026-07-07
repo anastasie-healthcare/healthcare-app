@@ -21,7 +21,7 @@ import {
 
 const DoctorDashboard = () => {
     const [user, setUser] = useState(null);
-    const [lang, setLang] = useState('FR');
+    const [lang, setLang] = useState('EN');
     const [activeMenu, setActiveMenu] = useState('dashboard');
     const [searchQuery, setSearchQuery] = useState('');
     const [isAvailable, setIsAvailable] = useState(true);
@@ -78,6 +78,18 @@ const DoctorDashboard = () => {
                 setSelectedEstablishment(profile.establishment || '');
                 setBio(profile.bio || '');
                 setFee(parseFloat(profile.consultation_fee) || 25.00);
+                const profileResponse = await getMyDoctorProfile();
+if (profileResponse.data) {
+    const profile = profileResponse.data;
+    setSpecialty(profile.specialty || 'Médecine Générale');
+    setLicenseNumber(profile.license_number || '');
+    setSelectedEstablishment(profile.establishment || '');
+    setBio(profile.bio || '');
+    setFee(parseFloat(profile.consultation_fee) || 25.00);
+    const updatedUser = { ...JSON.parse(localStorage.getItem('user')), verification_status: profile.verification_status };
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+}
             }
         } catch (err) {
             console.error('Error fetching data:', err);
@@ -518,9 +530,47 @@ const DoctorDashboard = () => {
                 const pendingBooking = appointments.filter(a => a.status === 'pending');
                 return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
+                        
+    
+{/* Verification Status Banner */}
+{(user?.verification_status !== 'approved') && (
+<div style={{
+    background: user?.verification_status === 'approved' ? '#f0fdf4' : user?.verification_status === 'rejected' ? '#fef2f2' : '#fffbeb',
+    border: '1px solid ' + (user?.verification_status === 'approved' ? '#bbf7d0' : user?.verification_status === 'rejected' ? '#fecaca' : '#fde68a'),
+    borderRadius: '12px', padding: '14px 20px',
+    display: 'flex', alignItems: 'center', gap: '12px'
+}}>
+    <div style={{
+        width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
+        background: user?.verification_status === 'approved' ? '#10b981' : user?.verification_status === 'rejected' ? '#ef4444' : '#f59e0b',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+        {user?.verification_status === 'approved'
+            ? <FaCheckCircle color="white" size={16} />
+            : user?.verification_status === 'rejected'
+                ? <FaSignOutAlt color="white" size={16} />
+                : <FaSpinner color="white" size={16} style={{ animation: 'spin 1s linear infinite' }} />}
+    </div>
+    <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: user?.verification_status === 'approved' ? '#166534' : user?.verification_status === 'rejected' ? '#991b1b' : '#92400e' }}>
+            {user?.verification_status === 'approved'
+                ? (lang === 'EN' ? '✅ Account Verified — Patients can find and book you' : '✅ Compte Vérifié — Les patients peuvent vous trouver et vous réserver')
+                : user?.verification_status === 'rejected'
+                    ? (lang === 'EN' ? '❌ Account Rejected — Please contact the administrator' : '❌ Compte Rejeté — Veuillez contacter l\'administrateur')
+                    : (lang === 'EN' ? '⏳ Pending Approval — Admin will review your credentials shortly' : '⏳ En attente d\'approbation — L\'administrateur examinera vos informations prochainement')}
+        </div>
+        <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
+            {user?.verification_status === 'approved'
+                ? (lang === 'EN' ? 'You are fully active on AnasHealthcare. Patients can book consultations with you.' : 'Vous êtes entièrement actif sur AnasHealthcare. Les patients peuvent réserver des consultations.')
+                : user?.verification_status === 'rejected'
+                    ? (lang === 'EN' ? 'Update your profile and diploma then contact support.' : 'Mettez à jour votre profil et diplôme puis contactez le support.')
+                    : (lang === 'EN' ? 'You can use the dashboard while waiting. You will appear to patients once approved.' : 'Vous pouvez utiliser le tableau de bord en attendant. Vous apparaîtrez aux patients une fois approuvé.')}
+        </div>
+    </div>
+</div>
+)}
                         {/* Banner */}
-                        <div style={{ background: 'linear-gradient(135deg, #0c1445 0%, #1e3a5f 50%, #064e3b 100%)', borderRadius: '16px', padding: '28px 32px' }}>
+                        <div style={{ background: 'linear-gradient(135deg, #054e72 0%, #1e92cc 50%, #7721bd 100%)', borderRadius: '20px', padding: '28px 32px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                                 <div>
                                     <h2 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, margin: '0 0 8px' }}>
@@ -553,7 +603,26 @@ const DoctorDashboard = () => {
                                 { icon: <FaUser size={18} />, color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0', label: lang === 'EN' ? 'Patients' : 'Patients', value: patientsList.length },
                                 { icon: <FaCheckCircle size={18} />, color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe', label: lang === 'EN' ? 'Completed' : 'Terminées', value: appointments.filter(a => a.status === 'completed').length },
                             ].map((stat, i) => (
-                                <div key={i} style={{ background: stat.bg, border: '1px solid ' + stat.border, borderRadius: '12px', padding: '16px 18px' }}>
+                                <div key={i}
+    onClick={() => setActiveMenu('appointments')}
+    onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-5px)';
+        e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
+        e.currentTarget.style.borderColor = stat.color;
+    }}
+    onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.borderColor = stat.border;
+    }}
+    style={{
+        background: stat.bg,
+        border: '1px solid ' + stat.border,
+        borderRadius: '12px',
+        padding: '16px 18px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease'
+    }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                                             <span style={{ color: stat.color }}>{stat.icon}</span>
@@ -615,15 +684,17 @@ const DoctorDashboard = () => {
             <div style={{ width: '240px', flexShrink: 0, background: 'white', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 100, boxShadow: '2px 0 8px rgba(0,0,0,0.04)' }}>
 
                 {/* Logo */}
-                <div style={{ padding: '18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #3b82f6, #10b981)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <MdLocalHospital size={20} color="white" />
-                    </div>
-                    <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', background: 'linear-gradient(135deg, #3b82f6, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AnasHealthcare</div>
-                        <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 500 }}>{lang === 'EN' ? 'Doctor Portal' : 'Portail Médecin'}</div>
-                    </div>
-                </div>
+<div style={{ padding: '20px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <img src="/logo.svg" alt="AnasHealthcare" style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+    <div>
+        <div style={{ fontWeight: 800, fontSize: '0.88rem', background: 'linear-gradient(135deg, #6366f1, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            AnasHealthcare
+        </div>
+        <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 500 }}>
+            {lang === 'EN' ? 'Doctor Portal' : 'Portail Médecin'}
+        </div>
+    </div>
+</div>
 
                 {/* Doctor info */}
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>

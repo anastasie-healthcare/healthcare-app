@@ -253,7 +253,7 @@ def doctors_list_update(request):
             profile, created = DoctorProfile.objects.get_or_create(user=request.user, defaults={
                 "specialty": "Médecine Générale",
                 "license_number": "PENDING-000",
-                "verification_status": "en_attente",
+                "verification_status": "pending",
             })
             serializer = DoctorProfileSerializer(profile)
             return Response(serializer.data)
@@ -269,7 +269,7 @@ def doctors_list_update(request):
     profile, created = DoctorProfile.objects.get_or_create(user=request.user, defaults={
         "specialty": "Médecine Générale",
         "license_number": "PENDING-000",
-        "verification_status": "en_attente",
+        "verification_status": "pending",
     })
 
     serializer = DoctorProfileSerializer(profile, data=request.data, partial=True)

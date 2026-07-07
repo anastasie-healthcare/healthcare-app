@@ -1,0 +1,32 @@
+<svg width="200" height="200" viewBox="0 0 200 200" role="img" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f2744"/>
+      <stop offset="100%" style="stop-color:#1a3a6b"/>
+    </linearGradient>
+    <linearGradient id="aGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#dbeafe"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="200" height="200" rx="20" fill="url(#bgGrad)"/>
+  <rect x="4" y="4" width="192" height="192" rx="17" fill="none" stroke="#ffffff" stroke-width="0.4" opacity="0.12"/>
+  <polygon points="52,158 74,62 90,158" fill="url(#aGrad)" opacity="0.96"/>
+  <polygon points="110,62 126,158 148,158 134,62" fill="url(#aGrad)" opacity="0.96"/>
+  <polygon points="74,62 110,62 118,100 66,100" fill="url(#bgGrad)"/>
+  <rect x="66" y="105" width="68" height="16" rx="4" fill="url(#aGrad)" opacity="0.96"/>
+  <rect x="92" y="30" width="10" height="34" rx="4" fill="#3b82f6"/>
+  <rect x="80" y="40" width="34" height="10" rx="4" fill="#3b82f6"/>
+  <rect x="92" y="30" width="10" height="8" rx="4" fill="#93c5fd" opacity="0.5"/>
+  <polyline points="69,113 77,113 82,104 88,122 94,107 100,113 133,113" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="69" cy="113" r="2" fill="#fca5a5"/>
+  <circle cx="133" cy="113" r="2" fill="#fca5a5"/>
+  <rect x="66" y="124" width="68" height="3" rx="1.5" fill="#10b981" opacity="0.85"/>
+  <circle cx="58" cy="158" r="4" fill="#3b82f6" opacity="0.9"/>
+  <circle cx="100" cy="158" r="4" fill="#ef4444" opacity="0.9"/>
+  <circle cx="142" cy="158" r="4" fill="#10b981" opacity="0.9"/>
+  <text x="100" y="176" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">ANAS</text>
+  <text x="78" y="190" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="7" font-weight="600" fill="#60a5fa" letter-spacing="1.5">HEALTH</text>
+  <circle cx="100" cy="187" r="1.5" fill="#ef4444"/>
+  <text x="122" y="190" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="7" font-weight="600" fill="#34d399" letter-spacing="1.5">CARE</text>
+</svg>

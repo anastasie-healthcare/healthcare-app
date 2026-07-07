@@ -30,10 +30,19 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    verification_status = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["id", "username", "email", "role", "phone", "profile_picture"]
+        fields = ["id", "username", "email", "role", "phone", "profile_picture", "verification_status"]
 
+    def get_verification_status(self, obj):
+        if obj.role == 'doctor':
+            try:
+                return obj.doctor_profile.verification_status
+            except:
+                return 'pending'
+        return None
 
 class EstablishmentSerializer(serializers.ModelSerializer):
     type_display = serializers.CharField(source="get_type_display", read_only=True)

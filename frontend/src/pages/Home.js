@@ -67,9 +67,12 @@ const Home = () => {
 
       {/* ========== NAVBAR ========== */}
       <nav style={{ background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)', boxShadow: '0 1px 15px rgba(0,0,0,0.06)', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, padding: '0.75rem 2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontWeight: 800, fontSize: '1.5rem', background: 'linear-gradient(135deg, #0d6efd, #198754)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          + AnasHealthcare
-        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+  <img src="/logo.svg" alt="AnasHealthcare" style={{ width: '38px', height: '38px', borderRadius: '8px' }} />
+  <div style={{ fontWeight: 800, fontSize: '1.3rem', background: 'linear-gradient(135deg, #0d6efd, #198754)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+    AnasHealthcare
+  </div>
+</div>
         <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
           {[{ en: 'Home', fr: 'Accueil', href: '#home' }, { en: 'About', fr: 'À propos', href: '#about' }, { en: 'Service', fr: 'Service', href: '#services' }].map((item, i) => (
             <a key={i} href={item.href} style={{ fontWeight: 500, color: '#1e293b', textDecoration: 'none', fontSize: '0.95rem', borderBottom: '2px solid transparent', paddingBottom: '2px', transition: '0.2s' }}

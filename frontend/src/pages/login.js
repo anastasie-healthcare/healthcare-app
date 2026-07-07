@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUserMd, FaLock, FaHeartbeat, FaEye, FaEyeSlash, FaArrowRight } from 'react-icons/fa';
-import { MdLocalHospital } from 'react-icons/md';
 import { GoogleLogin } from '@react-oauth/google';
 import { loginUser, googleLogin } from '../services/api';
 
@@ -115,35 +114,17 @@ const Login = () => {
 
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: '400px' }}>
           {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            style={{ marginBottom: '2rem' }}>
-            <div style={{
-              width: '80px', height: '80px',
-              background: 'linear-gradient(135deg, #0d6efd, #198754)',
-              borderRadius: '24px', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 1rem',
-              boxShadow: '0 20px 40px rgba(13,110,253,0.4)'
-            }}>
-              <MdLocalHospital size={42} color="white" />
-            </div>
-            <h1 style={{
-              fontSize: '2rem', fontWeight: 800, color: 'white',
-              marginBottom: '0.5rem',
-              background: 'linear-gradient(135deg, #60a5fa, #34d399)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-            }}>
-              AnasHealthcare
-            </h1>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>
-              {lang === 'EN'
-                ? 'Your trusted digital health companion'
-                : 'Votre compagnon santé numérique de confiance'}
-            </p>
-          </motion.div>
+<div style={{ padding: '20px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <img src="/logo.svg" alt="AnasHealthcare" style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+    <div>
+        <div style={{ fontWeight: 800, fontSize: '0.88rem', background: 'linear-gradient(135deg, #6366f1, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            AnasHealthcare
+        </div>
+        <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 500 }}>
+            {lang === 'EN' ? 'Patient Portal' : 'Portail Patient'}
+        </div>
+    </div>
+</div>
 
           {/* Floating health words */}
           <motion.div
