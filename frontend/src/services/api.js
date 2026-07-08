@@ -12,6 +12,40 @@ API.interceptors.request.use((config) => {
     return config;
 });
 
+API.interceptors.response.use(
+    response => response,
+    async error => {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+            try {
+                const refresh = localStorage.getItem('refresh_token');
+                if (!refresh) {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                    return Promise.reject(error);
+                }
+                const response = await axios.post(
+                    'http://127.0.0.1:8000/api/users/token/refresh/',
+                    { refresh }
+                );
+                const newAccess = response.data.access;
+                localStorage.setItem('access_token', newAccess);
+                originalRequest.headers['Authorization'] = 'Bearer ' + newAccess;
+                return API(originalRequest);
+            } catch (err) {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const registerUser = (data) => axios.post('http://127.0.0.1:8000/api/users/register/', data);
 export const loginUser = (data) => axios.post('http://127.0.0.1:8000/api/users/login/', data);
 export const googleLogin = (data) => axios.post('http://127.0.0.1:8000/api/users/google/', data);
@@ -61,4 +95,4 @@ export const updateWomensHealthProfile = (data) => API.post('/users/womens-healt
 export const getCycleLogs = () => API.get('/users/cycle-logs/');
 export const createCycleLog = (data) => API.post('/users/cycle-logs/', data);
 
-export default API;
+export default API;
