@@ -402,7 +402,7 @@ const UserDashboard = () => {
                         <DailyRemindersModule lang={lang} />
 
                         {/* Welcome banner */}
-                        <div style={{ background: 'linear-gradient(135deg, #2619dd 0%, #3631c5 50%, #435586 100%)', borderRadius: '16px', padding: '28px 32px', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ background: 'linear-gradient(135deg, #2619dd 0%, #a5a3c5 50%, #435586 100%)', borderRadius: '16px', padding: '28px 32px', position: 'relative', overflow: 'hidden' }}>
                             <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                                 <div>
                                     <h2 style={{ color: 'white', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 8px' }}>

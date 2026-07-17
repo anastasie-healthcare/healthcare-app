@@ -1,608 +1,534 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
-import { 
-  FaCalendarAlt, FaTint, FaSmile, FaSpinner, 
-  FaCheckCircle, FaBaby, FaHeart, FaChevronLeft, 
-  FaChevronRight, FaPlus, FaBookMedical, FaCalendarDay 
-} from 'react-icons/fa';
-import { 
-  getWomensHealthProfile, 
-  updateWomensHealthProfile, 
-  getCycleLogs, 
-  createCycleLog 
-} from '../../services/api';
+import { FaHeart, FaSpinner, FaCheckCircle, FaCalendarAlt, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { MdWaterDrop } from 'react-icons/md';
+import { getWomensHealthProfile, updateWomensHealthProfile, getCycleLogs, createCycleLog } from '../../services/api';
 
 const MOODS = [
-  { id: 'calm', label: { EN: 'Calm', FR: 'Calme' }, icon: '🧘' },
-  { id: 'happy', label: { EN: 'Happy', FR: 'Heureuse' }, icon: '😊' },
-  { id: 'sad', label: { EN: 'Sad', FR: 'Triste' }, icon: '😢' },
-  { id: 'irritable', label: { EN: 'Irritable', FR: 'Irritable' }, icon: '😠' },
-  { id: 'anxious', label: { EN: 'Anxious', FR: 'Anxieuse' }, icon: '😰' },
-  { id: 'energetic', label: { EN: 'Energetic', FR: "Pleine d'énergie" }, icon: '⚡' },
+  { id: 'calm', EN: 'Calm', FR: 'Calme', icon: '😌' },
+  { id: 'happy', EN: 'Happy', FR: 'Heureuse', icon: '😊' },
+  { id: 'sad', EN: 'Sad', FR: 'Triste', icon: '😢' },
+  { id: 'irritable', EN: 'Irritable', FR: 'Irritable', icon: '😠' },
+  { id: 'anxious', EN: 'Anxious', FR: 'Anxieuse', icon: '😰' },
+  { id: 'energetic', EN: 'Energetic', FR: 'Énergique', icon: '⚡' },
 ];
 
-const COMMON_SYMPTOMS = [
-  { id: 'cramps', label: { EN: 'Cramps', FR: 'Crampes' } },
-  { id: 'headache', label: { EN: 'Headache', FR: 'Maux de tête' } },
-  { id: 'bloating', label: { EN: 'Bloating', FR: 'Ballonnements' } },
-  { id: 'acne', label: { EN: 'Acne', FR: 'Acné' } },
-  { id: 'tender_breasts', label: { EN: 'Tender Breasts', FR: 'Seins douloureux' } },
-  { id: 'backache', label: { EN: 'Backache', FR: 'Mal de dos' } },
+const SYMPTOMS = [
+  { id: 'cramps', EN: 'Cramps', FR: 'Crampes' },
+  { id: 'headache', EN: 'Headache', FR: 'Maux de tête' },
+  { id: 'bloating', EN: 'Bloating', FR: 'Ballonnements' },
+  { id: 'acne', EN: 'Acne', FR: 'Acné' },
+  { id: 'tender_breasts', EN: 'Tender Breasts', FR: 'Seins douloureux' },
+  { id: 'backache', EN: 'Back Pain', FR: 'Mal de dos' },
 ];
-
-const WEEKDAYS = {
-  EN: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-  FR: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
-};
 
 const MONTHS = {
-  EN: ['January', 'February', 'March', 'April', 'May', 'June', 
-       'July', 'August', 'September', 'October', 'November', 'December'],
-  FR: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
-       'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+  EN: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+  FR: ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+};
+
+const WEEKDAYS = {
+  EN: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+  FR: ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam']
 };
 
 const WomensHealthModule = ({ lang }) => {
-  const [profile, setProfile] = useState({
-    is_enabled: true,
-    last_period_date: '',
-    cycle_length: 28,
-    period_duration: 5,
-  });
-
+  const [profile, setProfile] = useState({ last_period_date: '', cycle_length: 28, period_duration: 5 });
   const [logs, setLogs] = useState([]);
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savingLog, setSavingLog] = useState(false);
+  const [profileMsg, setProfileMsg] = useState(null);
+  const [logMsg, setLogMsg] = useState(null);
 
-  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
-  const [painLevel, setPainLevel] = useState('none');
-  const [fatigue, setFatigue] = useState('none');
-  const [mood, setMood] = useState('calm');
+  // Calendar
+  const today = new Date();
+  const [calMonth, setCalMonth] = useState(today.getMonth());
+  const [calYear, setCalYear] = useState(today.getFullYear());
+  const [selectedDate, setSelectedDate] = useState(today.toISOString().split('T')[0]);
+
+  // Daily log form
   const [flow, setFlow] = useState('none');
-  const [selectedSymptoms, setSelectedSymptoms] = useState([]);
+  const [mood, setMood] = useState('calm');
+  const [pain, setPain] = useState('none');
+  const [symptoms, setSymptoms] = useState([]);
   const [notes, setNotes] = useState('');
 
-  const [loading, setLoading] = useState(true);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [savingLog, setSavingLog] = useState(false);
-  const [profileMessage, setProfileMessage] = useState(null);
-  const [logMessage, setLogMessage] = useState(null);
-  const [pregnancyMode, setPregnancyMode] = useState(false);
+  // Active tab
+  const [tab, setTab] = useState('calendar'); // 'calendar' | 'log' | 'settings'
 
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const profileRes = await getWomensHealthProfile();
-      if (profileRes.data) setProfile(profileRes.data);
-      const logsRes = await getCycleLogs();
-      if (logsRes.data) setLogs(logsRes.data);
-    } catch (err) {
-      console.error("Error fetching women's health data:", err);
-    } finally {
-      setLoading(false);
-    }
+      const [pRes, lRes] = await Promise.all([getWomensHealthProfile(), getCycleLogs()]);
+      if (pRes.data) setProfile(pRes.data);
+      if (lRes.data) setLogs(lRes.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  const handleProfileSave = async (e) => {
+  const saveProfile = async (e) => {
     e.preventDefault();
-    setSavingProfile(true);
-    setProfileMessage(null);
+    setSaving(true);
     try {
       await updateWomensHealthProfile(profile);
-      setProfileMessage({ type: 'success', text: lang === 'EN' ? 'Settings updated successfully!' : 'Paramètres enregistrés avec succès !' });
-      const logsRes = await getCycleLogs();
-      setLogs(logsRes.data);
-    } catch (err) {
-      setProfileMessage({ type: 'error', text: lang === 'EN' ? 'Failed to update settings.' : "Échec de l'enregistrement." });
-    } finally {
-      setSavingProfile(false);
-    }
+      setProfileMsg({ ok: true, text: lang === 'EN' ? 'Saved successfully!' : 'Enregistré avec succès !' });
+      await fetchData();
+      // Auto jump to next period month
+        if (profile.last_period_date) {
+            const last = new Date(profile.last_period_date);
+            const next = new Date(last);
+            next.setDate(next.getDate() + 28);
+            setCalMonth(next.getMonth());
+            setCalYear(next.getFullYear());
+            setTab('calendar');
+        }
+    } catch { setProfileMsg({ ok: false, text: lang === 'EN' ? 'Failed to save.' : 'Échec de l\'enregistrement.' }); }
+    finally { setSaving(false); setTimeout(() => setProfileMsg(null), 3000); }
   };
 
-  const handleLogSubmit = async (e) => {
+  const saveLog = async (e) => {
     e.preventDefault();
     setSavingLog(true);
-    setLogMessage(null);
     try {
-      await createCycleLog({
-        date: logDate,
-        pain_level: painLevel,
-        fatigue,
-        mood,
-        flow,
-        symptoms: JSON.stringify(selectedSymptoms),
-        notes
-      });
-      setLogMessage({ type: 'success', text: lang === 'EN' ? 'Symptom log added successfully!' : 'Symptômes enregistrés avec succès !' });
-      const logsRes = await getCycleLogs();
-      setLogs(logsRes.data);
-    } catch (err) {
-      setLogMessage({ type: 'error', text: lang === 'EN' ? 'Failed to save daily symptoms.' : "Échec de l'enregistrement des symptômes." });
-    } finally {
-      setSavingLog(false);
-    }
-  };
-
-  const handleSymptomToggle = (id) => {
-    setSelectedSymptoms(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
+      await createCycleLog({ date: selectedDate, flow, mood, pain_level: pain, fatigue: 'none', symptoms: JSON.stringify(symptoms), notes });
+      setLogMsg({ ok: true, text: lang === 'EN' ? 'Log saved!' : 'Journal enregistré !' });
+      setFlow('none'); setMood('calm'); setPain('none'); setSymptoms([]); setNotes('');
+      await fetchData();
+    } catch { setLogMsg({ ok: false, text: lang === 'EN' ? 'Failed to save.' : 'Échec.' }); }
+    finally { setSavingLog(false); setTimeout(() => setLogMsg(null), 3000); }
   };
 
   const getDayStatus = (date) => {
     if (!profile.last_period_date) return 'none';
-    const lastPeriod = new Date(profile.last_period_date);
-    lastPeriod.setHours(0, 0, 0, 0);
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
+    const last = new Date(profile.last_period_date);
+    last.setHours(0, 0, 0, 0);
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const diff = Math.floor((d - last) / 86400000);
 
-    const diffDays = Math.floor((targetDate - lastPeriod) / (1000 * 60 * 60 * 24));
-    const cycleLength = 28;
+    // Check across all 3 cycle lengths
+    const cycleLengths = [26, 28, 30];
     const periodDuration = 5;
 
-    let remainder = diffDays % cycleLength;
-    if (remainder < 0) remainder += cycleLength;
+    for (let cycle of cycleLengths) {
+        let rem = diff % cycle;
+        if (rem < 0) rem += cycle;
 
-    if (remainder >= 0 && remainder < periodDuration) return 'period';
-    const ovulationDay = cycleLength - 14;
-    if (remainder === ovulationDay) return 'ovulation';
-    if (remainder >= ovulationDay - 5 && remainder <= ovulationDay + 1) return 'fertile';
+        // Period days (first 5 days)
+        if (rem >= 0 && rem < periodDuration) return 'period';
+    }
+
+    // Ovulation window — covers all 3 cycles
+    // 26-day cycle: ovulation day 12
+    // 28-day cycle: ovulation day 14
+    // 30-day cycle: ovulation day 16
+    for (let cycle of cycleLengths) {
+        let rem = diff % cycle;
+        if (rem < 0) rem += cycle;
+        const ovDay = cycle - 14;
+
+        // Ovulation day
+        if (rem === ovDay) return 'ovulation';
+
+        // Fertile window (5 days before ovulation to 1 day after)
+        if (rem >= ovDay - 5 && rem <= ovDay + 1) return 'fertile';
+    }
+
     return 'none';
-  };
+};
+  const getLogForDate = (ds) => logs.find(l => l.date === ds);
 
-  const getLogForDate = (dateString) => logs.find(l => l.date === dateString);
-
-  const handleDayClick = (dateString) => {
-    setLogDate(dateString);
-    const existingLog = getLogForDate(dateString);
-    if (existingLog) {
-      setPainLevel(existingLog.pain_level);
-      setFatigue(existingLog.fatigue);
-      setMood(existingLog.mood);
-      setFlow(existingLog.flow);
-      setSelectedSymptoms(existingLog.symptoms ? JSON.parse(existingLog.symptoms) : []);
-      setNotes(existingLog.notes || '');
+  const handleDayClick = (ds) => {
+    setSelectedDate(ds);
+    const log = getLogForDate(ds);
+    if (log) {
+      setFlow(log.flow || 'none');
+      setMood(log.mood || 'calm');
+      setPain(log.pain_level || 'none');
+      setSymptoms(log.symptoms ? JSON.parse(log.symptoms) : []);
+      setNotes(log.notes || '');
     } else {
-      setPainLevel('none'); setFatigue('none'); setMood('calm');
-      setFlow('none'); setSelectedSymptoms([]); setNotes('');
+      setFlow('none'); setMood('calm'); setPain('none'); setSymptoms([]); setNotes('');
     }
+    setTab('log');
   };
 
-  const handlePrevMonth = () => {
-    if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
-    else setCurrentMonth(currentMonth - 1);
-  };
+  const renderCalendar = () => {
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const cells = [];
+    const todayStr = today.toISOString().split('T')[0];
 
-  const handleNextMonth = () => {
-    if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1); }
-    else setCurrentMonth(currentMonth + 1);
-  };
+    for (let i = 0; i < firstDay; i++) cells.push(<div key={'e' + i} />);
 
-  const renderCalendarDays = () => {
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
-    const calendarCells = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const status = getDayStatus(new Date(calYear, calMonth, d));
+      const isToday = ds === todayStr;
+      const isSelected = ds === selectedDate;
+      const log = getLogForDate(ds);
 
-    for (let i = 0; i < firstDayIndex; i++) {
-      calendarCells.push(<div key={`empty-${i}`} style={{ height: '54px' }} />);
-    }
+      let bg = 'white', color = '#334155', border = '1px solid #f1f5f9';
+      if (status === 'period') { bg = '#ffe4e6'; color = '#be123c'; border = '1px solid #fda4af'; }
+      else if (status === 'ovulation') { bg = '#f5f3ff'; color = '#6d28d9'; border = '1px solid #c084fc'; }
+      else if (status === 'fertile') { bg = '#ecfdf5'; color = '#047857'; border = '1px solid #6ee7b7'; }
+      if (isSelected) border = '2px solid #f43f5e';
+      if (isToday) border = '2px solid #3b82f6';
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayDate = new Date(currentYear, currentMonth, day);
-      const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const status = getDayStatus(dayDate);
-      const isTodayString = new Date().toISOString().split('T')[0] === dateString;
-      const isSelected = logDate === dateString;
-      const dayLog = getLogForDate(dateString);
-
-      let bg = 'white', color = '#334155', border = '1px solid #f1f5f9', fontWeight = '500';
-
-      if (status === 'period') { bg = '#ffe4e6'; color = '#be123c'; border = '1px solid #fda4af'; fontWeight = '700'; }
-      else if (status === 'ovulation') { bg = '#f5f3ff'; color = '#6d28d9'; border = '1px solid #c084fc'; fontWeight = '700'; }
-      else if (status === 'fertile') { bg = '#ecfdf5'; color = '#047857'; border = '1px solid #6ee7b7'; fontWeight = '600'; }
-      if (isSelected) border = '2.5px solid #e11d48';
-
-      calendarCells.push(
-        <div key={`day-${day}`} onClick={() => handleDayClick(dateString)}
-          style={{
-            height: '54px', background: bg, color, border, borderRadius: '12px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: '0.82rem', fontWeight, position: 'relative',
-            boxSizing: 'border-box', transition: 'all 0.15s',
-            boxShadow: isTodayString ? 'inset 0 0 0 2px #3b82f6' : 'none'
-          }}>
-          <span>{day}</span>
-          {status === 'ovulation' && <span style={{ fontSize: '0.6rem', position: 'absolute', top: '2px', right: '2px' }}>🌸</span>}
-          {dayLog && (
-            <div style={{ display: 'flex', gap: '2px', position: 'absolute', bottom: '4px' }}>
-              <span style={{ fontSize: '0.65rem' }}>{MOODS.find(m => m.id === dayLog.mood)?.icon || '🧘'}</span>
-              {dayLog.flow !== 'none' && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ef4444' }} />}
-            </div>
-          )}
+      cells.push(
+        <div key={ds} onClick={() => handleDayClick(ds)} style={{
+          height: '44px', background: bg, color, border, borderRadius: '10px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, position: 'relative',
+          transition: 'all 0.1s'
+        }}>
+          <span>{d}</span>
+          {status === 'ovulation' && <span style={{ fontSize: '0.55rem', position: 'absolute', top: '2px', right: '3px' }}>🌸</span>}
+          {log && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#f43f5e', position: 'absolute', bottom: '3px' }} />}
         </div>
       );
     }
-    return calendarCells;
+    return cells;
   };
 
-  // Calculate 3 period predictions
   const getPredictions = () => {
     if (!profile.last_period_date) return [];
-    const lastPeriod = new Date(profile.last_period_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
+    const last = new Date(profile.last_period_date);
+    const now = new Date(); now.setHours(0, 0, 0, 0);
     return [
-      { days: 26, label: { EN: 'Short cycle (26 days)', FR: 'Cycle court (26 jours)' }, color: '#f43f5e' },
-      { days: 28, label: { EN: 'Average cycle (28 days)', FR: 'Cycle moyen (28 jours)' }, color: '#8b5cf6' },
-      { days: 30, label: { EN: 'Long cycle (30 days)', FR: 'Cycle long (30 jours)' }, color: '#0d9488' },
+      { days: 26, label: { EN: 'Short (26d)', FR: 'Court (26j)' }, color: '#f43f5e' },
+      { days: 28, label: { EN: 'Average (28d)', FR: 'Moyen (28j)' }, color: '#8b5cf6' },
+      { days: 30, label: { EN: 'Long (30d)', FR: 'Long (30j)' }, color: '#0d9488' },
     ].map(p => {
-      let nextPeriod = new Date(lastPeriod);
-      while (nextPeriod <= today) nextPeriod.setDate(nextPeriod.getDate() + p.days);
-      const daysRemaining = Math.ceil((nextPeriod - today) / (1000 * 60 * 60 * 24));
-      const dateStr = nextPeriod.toLocaleDateString(lang === 'EN' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long' });
-      return { ...p, dateStr, daysRemaining };
+      let next = new Date(last);
+      while (next <= now) next.setDate(next.getDate() + p.days);
+      const days = Math.ceil((next - now) / 86400000);
+      const dateStr = next.toLocaleDateString(lang === 'EN' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' });
+      return { ...p, dateStr, days };
     });
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-        <FaSpinner size={36} color="#f43f5e" style={{ animation: 'spin 1s linear infinite' }} />
-      </div>
-    );
-  }
-
   const predictions = getPredictions();
-  const currentStatus = getDayStatus(new Date());
+  const currentStatus = profile.last_period_date ? getDayStatus(today) : 'none';
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px' }}>
+      <FaSpinner size={32} color="#f43f5e" style={{ animation: 'spin 1s linear infinite' }} />
+    </div>
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ fontFamily: 'Inter, sans-serif', maxWidth: '900px' }}>
 
-      {/* Top Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
-        border: '1px solid #fecdd3', borderRadius: '20px', padding: '24px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{
-            width: '56px', height: '56px', background: 'white', borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#f43f5e', boxShadow: '0 4px 10px rgba(244,63,94,0.15)'
-          }}>
-            <FaHeart size={24} />
+      {/* Header */}
+      <div style={{ background: 'linear-gradient(135deg, #fff1f2, #ffe4e6)', border: '1px solid #fecdd3', borderRadius: '16px', padding: '20px 24px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ width: '48px', height: '48px', background: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(244,63,94,0.15)' }}>
+            <FaHeart color="#f43f5e" size={22} />
           </div>
           <div>
-            <h2 style={{ margin: 0, color: '#9f1239', fontWeight: 800, fontSize: '1.25rem' }}>
-              {lang === 'EN' ? 'My Health Cycle & Calendar' : 'Mon Calendrier & Cycle de Santé'}
+            <h2 style={{ margin: 0, color: '#9f1239', fontWeight: 800, fontSize: '1.1rem' }}>
+              {lang === 'EN' ? "Women's Health" : 'Santé Féminine'}
             </h2>
-            <p style={{ margin: '4px 0 0', color: '#be123c', fontSize: '0.85rem', maxWidth: '500px', lineHeight: 1.5 }}>
-              {lang === 'EN'
-                ? 'Track your symptoms and get estimates for your next period based on different cycle lengths.'
-                : 'Suivez vos symptômes et obtenez des estimations de vos prochaines règles selon différentes durées de cycle.'}
+            <p style={{ margin: '2px 0 0', color: '#be123c', fontSize: '0.78rem' }}>
+              {lang === 'EN' ? 'Track your cycle and daily symptoms' : 'Suivez votre cycle et symptômes quotidiens'}
             </p>
           </div>
         </div>
 
-        {/* 3 Predictions Countdown */}
-        {profile.last_period_date && (
-          <div style={{
-            background: 'white', padding: '14px 20px', borderRadius: '14px',
-            boxShadow: '0 2px 8px rgba(244,63,94,0.1)', border: '1px solid #ffe4e6', minWidth: '230px'
-          }}>
+        {/* Status + predictions */}
+        {profile.last_period_date ? (
+          <div style={{ background: 'white', borderRadius: '12px', padding: '12px 16px', border: '1px solid #fecdd3', minWidth: '200px' }}>
             {currentStatus === 'period' ? (
-              <>
-                <span style={{ display: 'block', fontSize: '0.68rem', color: '#9f1239', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.68rem', color: '#9f1239', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>
                   {lang === 'EN' ? 'Period in progress' : 'Règles en cours'}
-                </span>
-                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#f43f5e' }}>
-                  {lang === 'EN' ? 'Take care of yourself' : 'Prenez soin de vous'}
-                </span>
-              </>
+                </div>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: '#f43f5e' }}>
+                  {lang === 'EN' ? 'Take care 💗' : 'Prenez soin de vous 💗'}
+                </div>
+              </div>
             ) : (
               <>
-                <span style={{ display: 'block', fontSize: '0.68rem', color: '#9f1239', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>
-                  {lang === 'EN' ? 'Next period estimates' : 'Estimations prochaines règles'}
-                </span>
+                <div style={{ fontSize: '0.65rem', color: '#9f1239', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>
+                  {lang === 'EN' ? 'Next period estimates' : 'Prochaines règles estimées'}
+                </div>
                 {predictions.map((p, i) => (
-                  <div key={p.days} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '5px 0', borderBottom: i < 2 ? '1px solid #f1f5f9' : 'none', gap: '12px'
-                  }}>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{p.label[lang]}</span>
+                  <div key={p.days} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: i < 2 ? '1px solid #fce7f3' : 'none' }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{p.label[lang]}</span>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: p.color }}>{p.dateStr}</span>
-                      <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>
-                        {lang === 'EN' ? `in ${p.daysRemaining}d` : `dans ${p.daysRemaining}j`}
-                      </span>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: p.color }}>{p.dateStr}</span>
+                      <span style={{ fontSize: '0.62rem', color: '#94a3b8', marginLeft: '4px' }}>({lang === 'EN' ? `${p.days}d` : `${p.days}j`})</span>
                     </div>
                   </div>
                 ))}
-                <p style={{ margin: '8px 0 0', fontSize: '0.65rem', color: '#94a3b8', lineHeight: 1.4, textAlign: 'center' }}>
-                  {lang === 'EN'
-                    ? 'Cycles vary due to health & stress conditions.'
-                    : 'Les cycles varient selon la santé et le stress.'}
+                <p style={{ margin: '6px 0 0', fontSize: '0.6rem', color: '#94a3b8', lineHeight: 1.3, textAlign: 'center' }}>
+                  {lang === 'EN' ? 'Cycles vary — these are estimates only' : 'Les cycles varient — estimations seulement'}
                 </p>
               </>
             )}
           </div>
+        ) : (
+          <div style={{ background: 'white', borderRadius: '12px', padding: '12px 16px', border: '1px dashed #fecdd3', textAlign: 'center' }}>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#be123c', fontWeight: 600 }}>
+              {lang === 'EN' ? '👇 Enter your last period date below to start' : '👇 Entrez votre dernière date de règles ci-dessous'}
+            </p>
+          </div>
         )}
       </div>
 
-      {/* Main Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '24px', alignItems: 'start' }}>
-
-        {/* Left Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-          {/* Calendar */}
-          <div style={{
-            background: 'white', border: '1px solid #e2e8f0', borderRadius: '20px',
-            padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', background: '#f1f5f9', borderRadius: '10px', padding: '4px' }}>
+        {[
+          { id: 'calendar', label: { EN: '📅 Calendar', FR: '📅 Calendrier' } },
+          { id: 'log', label: { EN: '📝 Daily Log', FR: '📝 Journal' } },
+          { id: 'settings', label: { EN: '⚙️ Settings', FR: '⚙️ Paramètres' } },
+        ].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            flex: 1, padding: '8px', border: 'none', borderRadius: '8px', cursor: 'pointer',
+            fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '0.82rem',
+            background: tab === t.id ? 'white' : 'transparent',
+            color: tab === t.id ? '#f43f5e' : '#64748b',
+            boxShadow: tab === t.id ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+            transition: 'all 0.2s'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FaCalendarAlt color="#f43f5e" />
-                {MONTHS[lang][currentMonth]} {currentYear}
-              </h3>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={handlePrevMonth} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                  <FaChevronLeft size={10} />
-                </button>
-                <button onClick={handleNextMonth} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                  <FaChevronRight size={10} />
-                </button>
-              </div>
-            </div>
+            {t.label[lang]}
+          </button>
+        ))}
+      </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', textAlign: 'center', marginBottom: '8px' }}>
-              {WEEKDAYS[lang].map((day, idx) => (
-                <span key={idx} style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>{day}</span>
-              ))}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
-              {renderCalendarDays()}
-            </div>
-
-            {/* Legend */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '20px', borderTop: '1px solid #f1f5f9', paddingTop: '16px', justifyContent: 'center' }}>
-              {[
-                { bg: '#ffe4e6', border: '#fda4af', label: { EN: 'Period', FR: 'Règles' } },
-                { bg: '#ecfdf5', border: '#6ee7b7', label: { EN: 'High Fertility', FR: 'Haute fertilité' } },
-                { bg: '#f5f3ff', border: '#c084fc', label: { EN: 'Ovulation Day', FR: "Jour d'ovulation" } },
-              ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '14px', height: '14px', background: item.bg, border: `1px solid ${item.border}`, borderRadius: '4px' }} />
-                  <span style={{ fontSize: '0.74rem', color: '#475569', fontWeight: 600 }}>{item.label[lang]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Simplified Profile Config - only last period date */}
-          <div style={{
-            background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px',
-            padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-          }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaBookMedical color="#f43f5e" />
-              {lang === 'EN' ? 'Cycle Settings' : 'Paramètres du Cycle'}
+      {/* TAB: Calendar */}
+      {tab === 'calendar' && (
+        <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0' }}>
+          {/* Month navigation */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <button onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); } else setCalMonth(calMonth - 1); }} style={{ width: '30px', height: '30px', borderRadius: '50%', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <FaChevronLeft size={10} />
+            </button>
+            <h3 style={{ margin: 0, fontWeight: 800, color: '#1e293b', fontSize: '1rem' }}>
+              {MONTHS[lang][calMonth]} {calYear}
             </h3>
-            <p style={{ margin: '0 0 16px', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.5 }}>
-              {lang === 'EN'
-                ? 'Enter the first day of your last period. We will estimate your next period across 3 possible cycle lengths (26, 28, 30 days) since cycles vary due to health and stress.'
-                : 'Entrez le premier jour de vos dernières règles. Nous estimerons vos prochaines règles sur 3 durées possibles (26, 28, 30 jours) car les cycles varient selon la santé et le stress.'}
-            </p>
-
-            <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                  {lang === 'EN' ? 'First Day of Last Period' : 'Premier jour des dernières règles'}
-                </label>
-                <input
-                  type="date"
-                  value={profile.last_period_date || ''}
-                  onChange={e => setProfile({ ...profile, last_period_date: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '0.85rem' }}
-                  required
-                />
-              </div>
-
-              {profileMessage && (
-                <div style={{
-                  padding: '10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600,
-                  background: profileMessage.type === 'success' ? '#f0fdf4' : '#fef2f2',
-                  color: profileMessage.type === 'success' ? '#166534' : '#991b1b',
-                  border: `1px solid ${profileMessage.type === 'success' ? '#bbf7d0' : '#fecaca'}`
-                }}>
-                  {profileMessage.text}
-                </div>
-              )}
-
-              <button type="submit" disabled={savingProfile} style={{
-                padding: '10px 16px', background: '#f43f5e', color: 'white', border: 'none',
-                borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                boxShadow: '0 4px 10px rgba(244,63,94,0.2)'
-              }}>
-                {savingProfile
-                  ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} />
-                  : (lang === 'EN' ? 'Save & Calculate' : 'Enregistrer & Calculer')}
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-          {/* Symptom Logger */}
-          <div style={{
-            background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px',
-            padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-          }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaPlus color="#f43f5e" />
-              {lang === 'EN' ? 'Log Daily Symptoms' : 'Journal des Symptômes'}
-            </h3>
-
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaCalendarDay color="#f43f5e" />
-              <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>
-                {lang === 'EN' ? 'Selected Date:' : 'Date sélectionnée :'} <strong>{new Date(logDate + 'T00:00:00').toLocaleDateString(lang === 'EN' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-              </span>
-            </div>
-
-            <form onSubmit={handleLogSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  {lang === 'EN' ? 'Log Date' : 'Modifier la date'}
-                </label>
-                <input type="date" value={logDate} onChange={e => handleDayClick(e.target.value)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '0.8rem' }} required />
-              </div>
-
-              {/* Flow */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                  {lang === 'EN' ? 'Menstrual Flow' : 'Flux menstruel'}
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                  {[
-                    { id: 'none', label: { EN: 'None', FR: 'Aucun' } },
-                    { id: 'light', label: { EN: 'Light', FR: 'Léger' } },
-                    { id: 'medium', label: { EN: 'Medium', FR: 'Moyen' } },
-                    { id: 'heavy', label: { EN: 'Heavy', FR: 'Abondant' } }
-                  ].map(f => (
-                    <button key={f.id} type="button" onClick={() => setFlow(f.id)} style={{
-                      padding: '8px 4px', border: `1.5px solid ${flow === f.id ? '#f43f5e' : '#cbd5e1'}`,
-                      borderRadius: '8px', background: flow === f.id ? '#fff1f2' : 'white',
-                      color: flow === f.id ? '#f43f5e' : '#475569', fontWeight: 700, cursor: 'pointer', fontSize: '0.74rem'
-                    }}>{f.label[lang]}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Pain & Fatigue */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                {[
-                  { label: { EN: 'Pain Level', FR: 'Douleur' }, value: painLevel, setter: setPainLevel },
-                  { label: { EN: 'Fatigue Level', FR: 'Fatigue' }, value: fatigue, setter: setFatigue }
-                ].map((field, i) => (
-                  <div key={i}>
-                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                      {field.label[lang]}
-                    </label>
-                    <select value={field.value} onChange={e => field.setter(e.target.value)}
-                      style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1.5px solid #cbd5e1', outline: 'none', background: 'white', fontSize: '0.8rem' }}>
-                      <option value="none">{lang === 'EN' ? 'None' : 'Aucune'}</option>
-                      <option value="mild">{lang === 'EN' ? 'Mild' : 'Légère'}</option>
-                      <option value="moderate">{lang === 'EN' ? 'Moderate' : 'Modérée'}</option>
-                      <option value="severe">{lang === 'EN' ? 'Severe' : 'Intense'}</option>
-                    </select>
-                  </div>
-                ))}
-              </div>
-
-              {/* Mood */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                  {lang === 'EN' ? 'Dominant Mood' : 'Humeur dominante'}
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                  {MOODS.map(m => (
-                    <button key={m.id} type="button" onClick={() => setMood(m.id)} style={{
-                      padding: '8px 4px', border: `1.5px solid ${mood === m.id ? '#f43f5e' : '#e2e8f0'}`,
-                      borderRadius: '8px', background: mood === m.id ? '#fff1f2' : '#f8fafc',
-                      color: mood === m.id ? '#f43f5e' : '#475569', fontWeight: 600, cursor: 'pointer', fontSize: '0.74rem',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
-                    }}>
-                      <span>{m.icon}</span><span>{m.label[lang]}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Symptoms */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                  {lang === 'EN' ? 'Symptoms Experienced' : 'Symptômes ressentis'}
-                </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {COMMON_SYMPTOMS.map(s => (
-                    <button key={s.id} type="button" onClick={() => handleSymptomToggle(s.id)} style={{
-                      padding: '6px 12px', border: `1px solid ${selectedSymptoms.includes(s.id) ? '#f43f5e' : '#cbd5e1'}`,
-                      borderRadius: '20px', background: selectedSymptoms.includes(s.id) ? '#f43f5e' : 'white',
-                      color: selectedSymptoms.includes(s.id) ? 'white' : '#475569', fontWeight: 600, cursor: 'pointer', fontSize: '0.74rem'
-                    }}>{s.label[lang]}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  {lang === 'EN' ? 'Daily Notes' : 'Notes personnelles'}
-                </label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                  placeholder={lang === 'EN' ? 'How did you feel today? Any special events?' : 'Comment vous êtes-vous sentie ? Des événements particuliers ?'}
-                  style={{ width: '100%', height: '70px', padding: '8px', borderRadius: '8px', border: '1.5px solid #cbd5e1', outline: 'none', fontSize: '0.8rem', resize: 'none', fontFamily: 'inherit' }} />
-              </div>
-
-              {logMessage && (
-                <div style={{
-                  padding: '10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600,
-                  background: logMessage.type === 'success' ? '#f0fdf4' : '#fef2f2',
-                  color: logMessage.type === 'success' ? '#166534' : '#991b1b',
-                  border: `1px solid ${logMessage.type === 'success' ? '#bbf7d0' : '#fecaca'}`
-                }}>{logMessage.text}</div>
-              )}
-
-              <button type="submit" disabled={savingLog} style={{
-                padding: '10px 16px', background: '#f43f5e', color: 'white', border: 'none',
-                borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                boxShadow: '0 4px 10px rgba(244,63,94,0.2)'
-              }}>
-                {savingLog ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> : (lang === 'EN' ? 'Save Daily Log' : 'Enregistrer la journée')}
-              </button>
-            </form>
-          </div>
-
-          {/* Pregnancy Mode Stub */}
-          <div style={{
-            background: 'linear-gradient(135deg, #fafaf9 0%, #f5f5f4 100%)',
-            border: '1px solid #e7e5e4', borderRadius: '16px', padding: '24px',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'
-          }}>
-            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
-                <FaBaby size={22} />
-              </div>
-              <div>
-                <h4 style={{ margin: 0, color: '#44403c', fontWeight: 800, fontSize: '0.88rem' }}>
-                  {lang === 'EN' ? 'Pregnancy Mode & Prenatal Planner' : 'Mode Grossesse & Calendrier Prénatal'}
-                </h4>
-                <p style={{ margin: '2px 0 0', color: '#78716c', fontSize: '0.76rem', maxWidth: '300px', lineHeight: 1.4 }}>
-                  {lang === 'EN'
-                    ? 'Monitor baby growth steps, medical visits, and checklist. Currently in prototype.'
-                    : 'Suivez le développement de bébé, les consultations et examens prénataux. Mode prototype.'}
-                </p>
-              </div>
-            </div>
-            <button onClick={() => setPregnancyMode(!pregnancyMode)} style={{
-              padding: '6px 12px', background: pregnancyMode ? '#d97706' : 'white',
-              border: pregnancyMode ? 'none' : '1px solid #cbd5e1', borderRadius: '20px',
-              fontSize: '0.74rem', fontWeight: 700, color: pregnancyMode ? 'white' : '#57534e', cursor: 'pointer'
-            }}>
-              {pregnancyMode ? (lang === 'EN' ? 'Active' : 'Actif') : (lang === 'EN' ? 'Activate' : 'Activer')}
+            <button onClick={() => { if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); } else setCalMonth(calMonth + 1); }} style={{ width: '30px', height: '30px', borderRadius: '50%', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <FaChevronRight size={10} />
             </button>
           </div>
 
+          {/* Weekday headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '6px', textAlign: 'center' }}>
+            {WEEKDAYS[lang].map((d, i) => <span key={i} style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>{d}</span>)}
+          </div>
+
+          {/* Calendar grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+            {renderCalendar()}
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f1f5f9', justifyContent: 'center' }}>
+            {[
+              { bg: '#ffe4e6', border: '#fda4af', label: { EN: 'Period', FR: 'Règles' } },
+              { bg: '#ecfdf5', border: '#6ee7b7', label: { EN: 'Fertile window', FR: 'Fenêtre fertile' } },
+              { bg: '#f5f3ff', border: '#c084fc', label: { EN: 'Ovulation 🌸', FR: 'Ovulation 🌸' } },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '12px', height: '12px', background: item.bg, border: `1px solid ${item.border}`, borderRadius: '4px' }} />
+                <span style={{ fontSize: '0.72rem', color: '#475569', fontWeight: 600 }}>{item.label[lang]}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ width: '8px', height: '8px', background: '#f43f5e', borderRadius: '50%' }} />
+              <span style={{ fontSize: '0.72rem', color: '#475569', fontWeight: 600 }}>{lang === 'EN' ? 'Day logged' : 'Jour enregistré'}</span>
+            </div>
+          </div>
+
+          <p style={{ margin: '12px 0 0', fontSize: '0.74rem', color: '#94a3b8', textAlign: 'center' }}>
+            {lang === 'EN' ? '👆 Click any day to log your symptoms for that day' : '👆 Cliquez sur un jour pour enregistrer vos symptômes'}
+          </p>
         </div>
-      </div>
+      )}
+
+      {/* TAB: Daily Log */}
+      {tab === 'log' && (
+        <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0' }}>
+          <h3 style={{ margin: '0 0 4px', fontWeight: 800, color: '#1e293b', fontSize: '1rem' }}>
+            📝 {lang === 'EN' ? 'How are you feeling?' : 'Comment vous sentez-vous ?'}
+          </h3>
+          <p style={{ margin: '0 0 16px', color: '#94a3b8', fontSize: '0.78rem' }}>
+            {lang === 'EN' ? `Logging for: ${new Date(selectedDate + 'T00:00:00').toLocaleDateString(lang === 'EN' ? 'en-US' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}` : `Journal du : ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+          </p>
+
+          <form onSubmit={saveLog} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+            {/* Date picker */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '4px', textTransform: 'uppercase' }}>
+                {lang === 'EN' ? 'Date' : 'Date'}
+              </label>
+              <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value); const log = getLogForDate(e.target.value); if (log) { setFlow(log.flow || 'none'); setMood(log.mood || 'calm'); setPain(log.pain_level || 'none'); setSymptoms(log.symptoms ? JSON.parse(log.symptoms) : []); setNotes(log.notes || ''); } else { setFlow('none'); setMood('calm'); setPain('none'); setSymptoms([]); setNotes(''); } }}
+                style={{ padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.84rem', outline: 'none', fontFamily: 'Inter, sans-serif', width: '100%', boxSizing: 'border-box' }} />
+            </div>
+
+            {/* Flow */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
+                💧 {lang === 'EN' ? 'Menstrual Flow' : 'Flux Menstruel'}
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                {[
+                  { id: 'none', EN: 'None', FR: 'Aucun' },
+                  { id: 'light', EN: 'Light', FR: 'Léger' },
+                  { id: 'medium', EN: 'Medium', FR: 'Moyen' },
+                  { id: 'heavy', EN: 'Heavy', FR: 'Abondant' },
+                ].map(f => (
+                  <button key={f.id} type="button" onClick={() => setFlow(f.id)} style={{
+                    padding: '8px', border: '2px solid ' + (flow === f.id ? '#f43f5e' : '#e2e8f0'),
+                    borderRadius: '8px', background: flow === f.id ? '#fff1f2' : 'white',
+                    color: flow === f.id ? '#f43f5e' : '#475569', fontWeight: 700,
+                    fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+                  }}>{f[lang]}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pain */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
+                🩹 {lang === 'EN' ? 'Pain Level' : 'Niveau de Douleur'}
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                {[
+                  { id: 'none', EN: 'None', FR: 'Aucune' },
+                  { id: 'mild', EN: 'Mild', FR: 'Légère' },
+                  { id: 'moderate', EN: 'Moderate', FR: 'Modérée' },
+                  { id: 'severe', EN: 'Severe', FR: 'Intense' },
+                ].map(p => (
+                  <button key={p.id} type="button" onClick={() => setPain(p.id)} style={{
+                    padding: '8px', border: '2px solid ' + (pain === p.id ? '#ef4444' : '#e2e8f0'),
+                    borderRadius: '8px', background: pain === p.id ? '#fef2f2' : 'white',
+                    color: pain === p.id ? '#ef4444' : '#475569', fontWeight: 700,
+                    fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+                  }}>{p[lang]}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mood */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
+                {lang === 'EN' ? 'Mood' : 'Humeur'}
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                {MOODS.map(m => (
+                  <button key={m.id} type="button" onClick={() => setMood(m.id)} style={{
+                    padding: '8px', border: '2px solid ' + (mood === m.id ? '#8b5cf6' : '#e2e8f0'),
+                    borderRadius: '8px', background: mood === m.id ? '#f5f3ff' : 'white',
+                    color: mood === m.id ? '#8b5cf6' : '#475569', fontWeight: 700,
+                    fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                  }}>
+                    <span>{m.icon}</span> {m[lang]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Symptoms */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
+                {lang === 'EN' ? 'Symptoms' : 'Symptômes'}
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {SYMPTOMS.map(s => (
+                  <button key={s.id} type="button" onClick={() => setSymptoms(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id])} style={{
+                    padding: '6px 12px', border: '1.5px solid ' + (symptoms.includes(s.id) ? '#f43f5e' : '#e2e8f0'),
+                    borderRadius: '20px', background: symptoms.includes(s.id) ? '#f43f5e' : 'white',
+                    color: symptoms.includes(s.id) ? 'white' : '#475569', fontWeight: 600,
+                    fontSize: '0.76rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+                  }}>{s[lang]}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '4px', textTransform: 'uppercase' }}>
+                {lang === 'EN' ? 'Notes (optional)' : 'Notes (optionnel)'}
+              </label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)}
+                placeholder={lang === 'EN' ? 'How did you feel today? Anything special?' : 'Comment vous êtes-vous sentie aujourd\'hui ?'}
+                style={{ width: '100%', height: '70px', padding: '10px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.82rem', resize: 'none', fontFamily: 'Inter, sans-serif', outline: 'none', boxSizing: 'border-box', color: '#1e293b' }} />
+            </div>
+
+            {logMsg && (
+              <div style={{ padding: '10px', borderRadius: '8px', background: logMsg.ok ? '#f0fdf4' : '#fef2f2', border: '1px solid ' + (logMsg.ok ? '#bbf7d0' : '#fecaca'), fontSize: '0.8rem', fontWeight: 700, color: logMsg.ok ? '#166534' : '#991b1b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {logMsg.ok && <FaCheckCircle />} {logMsg.text}
+              </div>
+            )}
+
+            <button type="submit" disabled={savingLog} style={{
+              padding: '12px', background: 'linear-gradient(135deg, #f43f5e, #e11d48)', color: 'white',
+              border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              fontFamily: 'Inter, sans-serif', boxShadow: '0 4px 12px rgba(244,63,94,0.25)'
+            }}>
+              {savingLog ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> : <FaCheckCircle size={14} />}
+              {lang === 'EN' ? 'Save Daily Log' : 'Enregistrer le Journal'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* TAB: Settings */}
+      {tab === 'settings' && (
+        <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0' }}>
+          <h3 style={{ margin: '0 0 6px', fontWeight: 800, color: '#1e293b', fontSize: '1rem' }}>
+            ⚙️ {lang === 'EN' ? 'Cycle Settings' : 'Paramètres du Cycle'}
+          </h3>
+          <p style={{ margin: '0 0 16px', color: '#94a3b8', fontSize: '0.78rem', lineHeight: 1.5 }}>
+            {lang === 'EN'
+              ? 'Enter the first day of your last period. The app will show 3 estimates (26, 28, 30 days) for your next period since cycles vary based on health and stress.'
+              : 'Entrez le premier jour de vos dernières règles. L\'application affichera 3 estimations (26, 28, 30 jours) car les cycles varient selon la santé et le stress.'}
+          </p>
+
+          <form onSubmit={saveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
+                📅 {lang === 'EN' ? 'First Day of Last Period' : 'Premier Jour des Dernières Règles'}
+              </label>
+              <input type="date" value={profile.last_period_date || ''} onChange={e => setProfile({ ...profile, last_period_date: e.target.value })}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.84rem', outline: 'none', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }} required />
+            </div>
+
+            {/* Info box */}
+            <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '10px', padding: '12px 14px' }}>
+              <p style={{ margin: 0, fontSize: '0.76rem', color: '#be123c', lineHeight: 1.6 }}>
+                {lang === 'EN'
+                  ? '💡 Based on this date, the calendar will automatically color your period days (pink), fertile window (green) and ovulation day (purple) for the next months.'
+                  : '💡 Sur la base de cette date, le calendrier colorera automatiquement vos jours de règles (rose), la fenêtre fertile (vert) et le jour d\'ovulation (violet) pour les prochains mois.'}
+              </p>
+            </div>
+
+            {profileMsg && (
+              <div style={{ padding: '10px', borderRadius: '8px', background: profileMsg.ok ? '#f0fdf4' : '#fef2f2', border: '1px solid ' + (profileMsg.ok ? '#bbf7d0' : '#fecaca'), fontSize: '0.8rem', fontWeight: 700, color: profileMsg.ok ? '#166534' : '#991b1b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {profileMsg.ok && <FaCheckCircle />} {profileMsg.text}
+              </div>
+            )}
+
+            <button type="submit" disabled={saving} style={{
+              padding: '12px', background: 'linear-gradient(135deg, #f43f5e, #e11d48)', color: 'white',
+              border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              fontFamily: 'Inter, sans-serif', boxShadow: '0 4px 12px rgba(244,63,94,0.25)'
+            }}>
+              {saving ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> : <FaCheckCircle size={14} />}
+              {lang === 'EN' ? 'Save & Update Calendar' : 'Enregistrer & Mettre à jour le Calendrier'}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

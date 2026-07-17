@@ -570,7 +570,7 @@ if (profileResponse.data) {
 </div>
 )}
                         {/* Banner */}
-                        <div style={{ background: 'linear-gradient(135deg, #054e72 0%, #1e92cc 50%, #7721bd 100%)', borderRadius: '20px', padding: '28px 32px' }}>
+                        <div style={{ background: 'linear-gradient(135deg, #1c1f9b 0%, #857ea1 50%, #7721bd 100%)', borderRadius: '20px', padding: '28px 32px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                                 <div>
                                     <h2 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, margin: '0 0 8px' }}>

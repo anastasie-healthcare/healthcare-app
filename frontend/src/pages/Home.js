@@ -330,7 +330,7 @@ const Home = () => {
       </section>
 
       {/* ========== CTA ========== */}
-      <section style={{ padding: '4rem', background: 'linear-gradient(135deg, #203a1e 0%, #3da574 50%, #065f46 100%)', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ padding: '4rem', background: 'linear-gradient(135deg, #1d2f83 0%, #b3a3da 50%, #25379c 100%)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-40px', left: '-40px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
         <motion.div

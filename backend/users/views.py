@@ -463,7 +463,7 @@ def admin_analytics(request):
     })
 
 
-@api_view(["GET", "PUT"])
+@api_view(["GET", "PUT", "DELETE"])
 @permission_classes([IsAuthenticated])
 def admin_users_list_update(request):
     if request.user.role != "admin":
@@ -480,13 +480,21 @@ def admin_users_list_update(request):
             u = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
         serializer = AdminUserSerializer(u, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    elif request.method == "DELETE":
+        user_id = request.data.get("id")
+        try:
+            u = User.objects.get(id=user_id)
+            if u.role == "admin":
+                return Response({"error": "Cannot delete admin users"}, status=status.HTTP_403_FORBIDDEN)
+            u.delete()
+            return Response({"message": "User deleted successfully"}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
