@@ -104,11 +104,11 @@ class DoctorProfile(models.Model):
 
 class Appointment(models.Model):
     STATUS_CHOICES = (
-        ("pending", "En attente"),
-        ("confirmed", "Confirmé"),
-        ("declined", "Refusé"),
-        ("postponed", "Reporté"),
-        ("completed", "Terminé"),
+        ("pending", "pending"),
+        ("confirmed", "Confirmed"),
+        ("declined", "declined"),
+        ("postponed", "postponed"),
+        ("completed", "completed"),
     )
     patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="appointments_as_patient")
     doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="appointments_as_doctor")

@@ -38,8 +38,7 @@ const DoctorDashboard = () => {
 
     const [aiHypotheses, setAiHypotheses] = useState(null);
     const [aiLoading, setAiLoading] = useState(false);
-
-    const [specialty, setSpecialty] = useState('Médecine Générale');
+    const [specialty, setSpecialty] = useState('General Medicine');
     const [licenseNumber, setLicenseNumber] = useState('');
     const [selectedEstablishment, setSelectedEstablishment] = useState('');
     const [bio, setBio] = useState('');
@@ -73,7 +72,7 @@ const DoctorDashboard = () => {
             const profileResponse = await getMyDoctorProfile();
             if (profileResponse.data) {
                 const profile = profileResponse.data;
-                setSpecialty(profile.specialty || 'Médecine Générale');
+               setSpecialty(profile.specialty || 'General Medicine');
                 setLicenseNumber(profile.license_number || '');
                 setSelectedEstablishment(profile.establishment || '');
                 setBio(profile.bio || '');
@@ -81,7 +80,7 @@ const DoctorDashboard = () => {
                 const profileResponse = await getMyDoctorProfile();
 if (profileResponse.data) {
     const profile = profileResponse.data;
-    setSpecialty(profile.specialty || 'Médecine Générale');
+    setSpecialty(profile.specialty || 'General Medicine');
     setLicenseNumber(profile.license_number || '');
     setSelectedEstablishment(profile.establishment || '');
     setBio(profile.bio || '');
